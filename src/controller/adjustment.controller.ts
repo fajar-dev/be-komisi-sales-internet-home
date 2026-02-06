@@ -2,14 +2,14 @@ import { AdjustmentService } from "../service/adjustment.service";
 import { Context } from "hono";
 import { ApiResponseHandler } from "../helper/api-response";
 import { EmployeeService } from "../service/employee.service";
-import { SnapshotService } from "../service/snapshot.service";
+// import { SnapshotService } from "../service/snapshot.service";
 
 export class AdjustmentController {
     constructor(
         private adjustmentService = AdjustmentService,
         private apiResponse = ApiResponseHandler,
         private employeeService = EmployeeService,
-        private snapshotService = SnapshotService,
+        // private snapshotService = SnapshotService,
     ) {}
 
     async insertAdjustment(c: Context) {
@@ -49,7 +49,7 @@ export class AdjustmentController {
             const user = c.get('user');
             const result = await this.adjustmentService.acceptAdjustment(id, user.sub);
             if(result){
-                await this.snapshotService.updateSnapshot(result.ai, result.newValue, result.isDeleted);
+                // await this.snapshotService.updateSnapshot(result.ai, result.newValue, result.isDeleted);
             }
 
             return c.json(this.apiResponse.success("Adjustment accepted successfully", result));

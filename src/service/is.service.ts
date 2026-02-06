@@ -2,127 +2,106 @@ import { nisPool } from "../config/nis.db"
 
 export class IsService {
 
-    static async getIinternalByDateRange(startDate: string, endDate: string) {
+    static async getCustomerInvoiceByDateRange(startDate: string, endDate: string) {
         let query = `
-            SELECT 
-                nciit.AI, nciit.counter, nciit.new_subscription, nciit.dpp, nciit.is_prorata, nciit.is_upgrade, nciit.trx_date,
-                cit.InvoiceNum, cit.AwalPeriode, cit.AkhirPeriode, 
-                IFNULL(citc.InvoiceDate, cit.InvoiceDate) as InvoiceDate, 
-                cs.CustServId, cs.SalesId, cs.ManagerSalesId,
-                c.CustId, c.CustCompany, 
-                s.ServiceId, s.ServiceType, s.ServiceLevel, s.BusinessOperation,
-                c.Surveyor,
-                itm.Month,
-                nci.Description,
-                cit.GooglePaymentTermPlan, cit.Urut,
-                IFNULL(cs.ResellerType, c.ResellerType)   AS ResellerType,
-                IFNULL(cs.ResellerTypeId, c.ResellerId)   AS ResellerTypeId,
-                (
-                    SELECT COUNT(*) 
-                    FROM CustomerServices cs2 
-                    JOIN Services s2 ON cs2.ServiceId = s2.ServiceId
-                    WHERE cs2.CustId = nci.CustId
-                    AND (cs2.CustStatus IS NULL OR cs2.CustStatus <> 'NA')
-                    AND s2.BusinessOperation = 'resell'
-                ) as cross_sell_count   
-            FROM NewCustomerInvoiceInternetCounter nciit 
-            LEFT JOIN NewCustomerInvoice nci ON nciit.AI = nci.AI 
-            LEFT JOIN CustomerInvoiceTemp cit ON nci.Id = cit.InvoiceNum AND nci.No = cit.Urut
-            LEFT JOIN InvoiceTypeMonth itm ON cit.InvoiceType = itm.InvoiceType
-            LEFT JOIN CustomerInvoiceTemp_Custom citc ON cit.InvoiceNum = citc.InvoiceNum AND cit.Urut = citc.Urut
-            LEFT JOIN CustomerServices cs ON cs.CustId = nci.CustId AND cs.ServiceId = cit.ServiceId
-            LEFT JOIN Customer c ON c.CustId = nci.CustId
-            LEFT JOIN Services s ON cs.ServiceId = s.ServiceId
-            WHERE s.BusinessOperation = 'internal'
-            AND nciit.trx_date BETWEEN ? AND ?
-            GROUP BY nciit.AI
+            SELECT
+                nci.AI AS ai,
+                cit.CustId AS customer_id,
+                c.CustName AS customer_name,
+                c.CustCompany AS customer_company,
+                cit.CustServId AS customer_service_id,
+                cit.ServiceGroup AS service_group_id,
+                s.ServiceId AS service_id,
+                s.ServiceType AS service_name,
+                IFNULL(citc.InvoiceDate, cit.InvoiceDate) AS invoice_date,
+                -- cit.AwalPeriode AS period_start,
+                -- cit.AkhirPeriode AS period_end,
+                IFNULL(itm.Month, 1) AS month,
+                -- (cit.CustTotSubsFee - IFNULL(cid.Amount, 0)) AS dpp,
+                nciic.new_subscription AS dpp,
+                nciic.new_subscription AS new_subscription,
+                -- IF(ncib.batchNo IS NULL, 0, 1) AS paid,
+                -- MAX(DATE(nci2.InsertDate)) AS payment_input_date,
+                MAX(nci2.TransDate) AS paid_date,
+                nciic.counter AS counter,
+                -- cit.InvProrata AS invoice_prorata,
+                nciic.is_prorata,
+                -- fvs.tagihan AS fo_billing,
+                nciic.is_upgrade AS is_upgrade,
+                -- nciic.line_rental AS line_rental,
+                cs.SalesId AS sales_id,
+                cs.ManagerSalesId AS manager_id,
+                CASE
+                    WHEN cs.ResellerType = 'referral' THEN cs.ResellerTypeId
+                    ELSE NULL
+                END AS referral_id
+            FROM
+                CustomerInvoiceTemp cit
+                LEFT JOIN CustomerInvoiceTemp_Custom citc
+                    ON cit.InvoiceNum = citc.InvoiceNum
+                    AND cit.Urut = citc.Urut
+                LEFT JOIN InvoiceTypeMonth itm
+                    ON itm.InvoiceType = cit.InvoiceType
+                LEFT JOIN NewCustomerInvoice nci
+                    ON cit.InvoiceNum = nci.Id
+                    AND nci.No = cit.Urut
+                    AND nci.Type = 'internet'
+                LEFT JOIN CustomerInvoiceDiscount cid
+                    ON cid.InvoiceNum = cit.InvoiceNum
+                    AND cid.Urut = cit.Urut
+                LEFT JOIN NewCustomerInvoiceBatch ncib
+                    ON nci.AI = ncib.AI
+                LEFT JOIN NewCustomerInvoiceBatch ncib2
+                    ON ncib.batchNo = ncib2.batchNo
+                    AND ncib2.AI != ncib.AI
+                    AND ncib2.total > 0
+                LEFT JOIN NewCustomerInvoice nci2
+                    ON ncib2.AI = nci2.AI
+                LEFT JOIN CustomerServices cs
+                    ON cit.CustServId = cs.CustServId
+                LEFT JOIN Services s
+                    ON s.ServiceId = cs.ServiceId
+                LEFT JOIN ServiceGroup sg
+                    ON sg.ServiceGroup = s.ServiceGroup
+                LEFT JOIN Customer c
+                    ON c.CustId = cs.CustId
+                LEFT JOIN Reseller rs
+                    ON c.ResellerId = rs.Id
+                LEFT JOIN FiberVendorServices fvs
+                    ON fvs.type = 'CustomerServices'
+                    AND cs.CustServId = fvs.typeId
+                LEFT JOIN NewCustomerInvoiceInternetCounter nciic
+                    ON nciic.AI = nci.AI
+            WHERE 
+                cit.RInvoiceNum = 0
+                AND (ncib.batchNo IS NULL OR nci2.Type = 'RA02')
+                AND (
+                    IFNULL(c.DisplayBranchId, c.BranchId) IN ('020', '062', '025', '027', '029')
+                    OR (
+                        IFNULL(c.DisplayBranchId, c.BranchId) IN ('028')
+                        AND nciic.new_subscription > 110000
+                        AND cs.SalesId NOT IN ('0208801')
+                    )
+                )
+                AND s.ServiceId IN ('BFLITE', 'NFSP030', 'NFSP100', 'NFSP200', 'HOME100', 'HOMEADV200', 'HOMEPREM300', 'HOMEADV')
+                AND nciic.new_subscription > 0
+                AND (
+                    (DATE(nci.InsertDate) BETWEEN ? AND ?)
+                    OR (nci2.TransDate IS NOT NULL AND nci2.TransDate BETWEEN ? AND ?)
+                )
+                AND cs.CustServId IS NOT NULL
+                AND ncib.batchNo IS NOT NULL
+            GROUP BY 
+                nci.AI
+            ORDER BY 
+                nci.AI;
         `;
 
         const [rows] = await nisPool.query({
             sql: query,
-        }, [startDate, endDate]);
+        }, [startDate, endDate, startDate, endDate]);
 
         return rows as any[];
     }
 
-    static async getResellByDateRange(startDate: string, endDate: string) {
-        let query = `
-            SELECT 
-                nciit.AI, nciit.counter, nciit.new_subscription, nciit.dpp, 
-                nciit.is_prorata, nciit.is_upgrade, nciit.trx_date,
-                cit.InvoiceNum, cit.AwalPeriode, cit.AkhirPeriode, 
-                IFNULL(citc.InvoiceDate, cit.InvoiceDate) as InvoiceDate, 
-                cs.CustServId, cs.SalesId, cs.ManagerSalesId,
-                c.CustId, c.CustCompany, 
-                s.ServiceId, s.ServiceType, s.ServiceLevel, s.BusinessOperation,
-                itm.Month,
-                nci.Description,
-                cit.GooglePaymentTermPlan, cit.Urut,
-                IFNULL(cs.ResellerType, c.ResellerType)   AS ResellerType,
-                IFNULL(cs.ResellerTypeId, c.ResellerId)   AS ResellerTypeId
-            FROM NewCustomerInvoiceInternetCounter nciit 
-            LEFT JOIN NewCustomerInvoice nci 
-                ON nciit.AI = nci.AI 
-            LEFT JOIN CustomerInvoiceTemp cit 
-                ON nci.Id = cit.InvoiceNum 
-                AND nci.No = cit.Urut
-            LEFT JOIN InvoiceTypeMonth itm 
-                ON cit.InvoiceType = itm.InvoiceType
-            LEFT JOIN CustomerInvoiceTemp_Custom citc 
-                ON cit.InvoiceNum = citc.InvoiceNum 
-                AND cit.Urut = citc.Urut
-            LEFT JOIN CustomerServices cs 
-                ON cs.CustId = nci.CustId 
-                AND cs.ServiceId = cit.ServiceId
-            LEFT JOIN Customer c 
-                ON c.CustId = nci.CustId
-            LEFT JOIN Services s 
-                ON cs.ServiceId = s.ServiceId
-            WHERE s.BusinessOperation = 'resell'
-            AND (s.ServiceGroup IS NULL OR s.ServiceGroup <> 'DO')
-            AND nciit.trx_date BETWEEN ? AND ?
-            GROUP BY nciit.AI
-        `;
-        const [rows] = await nisPool.query({
-            sql: query,
-        }, [startDate, endDate]);
-
-        return rows as any[];
-    }
-
-    static async getCustomerNaByImplementator(
-        employeeId: string,
-        startDate: string,
-        endDate: string
-        ): Promise<number> {
-        const query = `
-            SELECT COUNT(*) AS total
-            FROM CustomerServices cs
-            LEFT JOIN Customer c ON c.CustId = cs.CustId
-            WHERE cs.ServiceId IN ('NWBUS', 'NWADV')
-            AND c.Surveyor = ?
-            AND cs.CustStatus = 'NA'
-            AND cs.CustUnregDate BETWEEN ? AND ?;
-        `;
-
-        const [rows] = await nisPool.query(query, [employeeId, startDate, endDate]);
-
-        return Number((rows as any[])[0]?.total ?? 0);
-    }
-
-    static async getUpgradeCount(custServId: number, currentAi: number): Promise<number> {
-        const query = `
-            SELECT COUNT(nciit.AI) as total
-            FROM NewCustomerInvoiceInternetCounter nciit
-            JOIN NewCustomerInvoice nci ON nciit.AI = nci.AI
-            JOIN CustomerInvoiceTemp cit ON nci.Id = cit.InvoiceNum AND nci.No = cit.Urut
-            JOIN CustomerServices cs ON cs.CustId = nci.CustId AND cs.ServiceId = cit.ServiceId
-            WHERE cs.CustServId = ?
-            AND (nciit.is_upgrade = 1 OR nciit.is_prorata = 1)
-            AND nciit.AI <= ?
-        `;
-
-        const [rows] = await nisPool.query(query, [custServId, currentAi]);
-        return Number((rows as any[])[0]?.total ?? 0);
-    }
 }
