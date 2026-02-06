@@ -1,0 +1,21 @@
+{
+  "name": "komisi-sales",
+  "scripts": {
+    "dev": "bun run --hot src/main.ts",
+    "start": "bun run src/main.ts",
+    "crawl": "bun run src/crawl/crawl.ts",
+    "build": "bun build --minify --outfile dist/main.js --target bun src/main.ts"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
+    "axios": "^1.13.2",
+    "date-fns": "^4.1.0",
+    "google-auth-library": "^10.5.0",
+    "hono": "^4.11.4",
+    "mysql2": "^3.16.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
