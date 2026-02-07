@@ -14,23 +14,18 @@ export class IsService {
                 s.ServiceId AS service_id,
                 s.ServiceType AS service_name,
                 IFNULL(citc.InvoiceDate, cit.InvoiceDate) AS invoice_date,
-                -- cit.AwalPeriode AS period_start,
-                -- cit.AkhirPeriode AS period_end,
                 IFNULL(itm.Month, 1) AS month,
-                -- (cit.CustTotSubsFee - IFNULL(cid.Amount, 0)) AS dpp,
-                nciic.new_subscription AS dpp,
+                nciic.dpp AS dpp,
                 nciic.new_subscription AS new_subscription,
-                -- IF(ncib.batchNo IS NULL, 0, 1) AS paid,
-                -- MAX(DATE(nci2.InsertDate)) AS payment_input_date,
-                MAX(nci2.TransDate) AS paid_date,
+                nci.InsertDate AS paid_date,
                 nciic.counter AS counter,
-                -- cit.InvProrata AS invoice_prorata,
+                cit.InvoiceNum AS invoice_num,
+                cit.Urut AS invoice_order,
                 nciic.is_prorata,
-                -- fvs.tagihan AS fo_billing,
-                nciic.is_upgrade AS is_upgrade,
-                -- nciic.line_rental AS line_rental,
+                nciic.is_upgrade,
                 cs.SalesId AS sales_id,
                 cs.ManagerSalesId AS manager_id,
+                cs.CustAccName AS customer_service_account,
                 CASE
                     WHEN cs.ResellerType = 'referral' THEN cs.ResellerTypeId
                     ELSE NULL
@@ -84,7 +79,6 @@ export class IsService {
                     )
                 )
                 AND s.ServiceId IN ('BFLITE', 'NFSP030', 'NFSP100', 'NFSP200', 'HOME100', 'HOMEADV200', 'HOMEPREM300', 'HOMEADV')
-                AND nciic.new_subscription > 0
                 AND (
                     (DATE(nci.InsertDate) BETWEEN ? AND ?)
                     OR (nci2.TransDate IS NOT NULL AND nci2.TransDate BETWEEN ? AND ?)

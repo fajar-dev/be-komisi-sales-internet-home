@@ -6,6 +6,8 @@ import { EmployeeController } from '../controller/employee.controller';
 import { hierarchyMiddleware } from '../middleware/hierarchy.middleware';
 import { AdditionalController } from '../controller/additional.controller';
 import { AdjustmentController } from '../controller/adjustment.controller';
+import { SnapshotController } from '../controller/snapshot.controller';
+import { CommissionController } from '../controller/commission.controller';
 
 
 const route = new Hono();
@@ -23,6 +25,12 @@ route.get('/additional', (c) => new AdditionalController().getPeriod(c));
 
 route.get('/employee/:id', authMiddleware, (c) => new EmployeeController().getEmployeeByEmployeeId(c));
 route.get('/employee/:id/hierarchy', authMiddleware, (c) => new EmployeeController().getEmployeeHierarchy(c));
+
+route.get('/sales/:id/commission', (c) => new CommissionController().salesCommission(c));
+
+route.get('/sales/:id/invoice', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesInvoice(c));
+route.get('/sales/:id/invoice/:ai', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesSnapshotByAi(c));
+route.get('/manager/:id/team', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().managerTeamCommission(c));
 
 route.get('/adjustment', authMiddleware, (c) => new AdjustmentController().getAdjustment(c));
 route.post('/adjustment', authMiddleware, (c) => new AdjustmentController().insertAdjustment(c));

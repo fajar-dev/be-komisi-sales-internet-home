@@ -1,0 +1,1163 @@
+{
+    "success": true,
+    "message": "Count retrieved successfully",
+    "data": {
+        "commission": "0.00",
+        "mrc": "0.00",
+        "count": 0,
+        "detail": {
+            "new": {
+                "count": 0,
+                "commission": "0.00",
+                "mrc": "0.00"
+            },
+            "prorata": {
+                "count": 0,
+                "commission": "0.00",
+                "mrc": "0.00"
+            },
+            "recurring": {
+                "count": 0,
+                "commission": 0
+            }
+        },
+        "service": [
+            {
+                "name": "Home",
+                "count": 0,
+                "commission": "0.00",
+                "mrc": "0.00",
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                }
+            },
+            {
+                "name": "Nusafiber",
+                "count": 0,
+                "commission": "0.00",
+                "mrc": "0.00",
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                }
+            },
+            {
+                "name": "NusaSelecta",
+                "count": 0,
+                "commission": "0.00",
+                "mrc": "0.00",
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                }
+            }
+        ],
+        "monthly": {
+            "January": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "February": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "March": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "April": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "May": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "June": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "July": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+                        "August": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "September": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "October": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "November": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            },
+            "December": {
+                "commission": "0.00",
+                "mrc": "0.00",
+                "count": 0,
+                "detail": {
+                    "new": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "prorata": {
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00"
+                    },
+                    "recurring": {
+                        "count": 0,
+                        "commission": 0
+                    }
+                },
+                "service": [
+                    {
+                        "name": "Home",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "Nusafiber",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    },
+                    {
+                        "name": "NusaSelecta",
+                        "count": 0,
+                        "commission": "0.00",
+                        "mrc": "0.00",
+                        "detail": {
+                            "new": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "prorata": {
+                                "count": 0,
+                                "commission": "0.00",
+                                "mrc": "0.00"
+                            },
+                            "recurring": {
+                                "count": 0,
+                                "commission": 0
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

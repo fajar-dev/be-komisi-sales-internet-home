@@ -1,9 +1,49 @@
 import { period } from "./period";
 
 export class CommissionHelper {
+    static formatCurrency(val: number) {
+        return val.toFixed(2);
+    }
+
+    static toNum(val: any) {
+        return Number(val || 0);
+    }
+
+    static getServiceName(id: string) {
+        if (id === 'BFLITE') return 'Nusafiber';
+        if (['NFSP030', 'FSP100', 'NFSP100', 'NFSP200'].includes(id)) return 'NusaSelecta';
+        if (['HOME100', 'HOMEADV200', 'HOMEADV', 'HOMEPREM300'].includes(id)) return 'Home';
+        return 'Other';
+    }
+
+    static initStats() {
+        return {
+            count: 0,
+            commission: 0,
+            mrc: 0,
+            dpp: 0
+        };
+    }
+
+    static initDetail() {
+        return {
+            new: this.initStats(),
+            prorate: this.initStats(),
+            recurring: this.initStats()
+        };
+    }
+
+    static initServiceMap() {
+        return {
+            'Home': { name: 'Home', ...this.initStats(), detail: this.initDetail() },
+            'Nusafiber': { name: 'Nusafiber', ...this.initStats(), detail: this.initDetail() },
+            'NusaSelecta': { name: 'NusaSelecta', ...this.initStats(), detail: this.initDetail() }
+        };
+    }
+
     static async processAnnualCommission(
         year: number,
-        processMonth: (startDate: string, endDate: string) => Promise<{ detail: any[], total: number }>
+        processMonth: (startDate: string, endDate: string) => Promise<{ detail: any, total: number }>
     ) {
         const months = [
             "January", "February", "March", "April", "May", "June",

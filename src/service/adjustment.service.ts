@@ -22,7 +22,7 @@ export class AdjustmentService {
                 s.service_group_id as serviceGroupId,
                 s.service_name as serviceName,
                 s.invoice_number as invoiceNumber,
-                s.position as position
+                s.invoice_order as invoiceOrder
             FROM adjustment a
             LEFT JOIN employee e ON a.employee_id = e.employee_id
             LEFT JOIN snapshot s ON a.ai = s.ai

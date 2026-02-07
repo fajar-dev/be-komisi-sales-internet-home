@@ -21,6 +21,19 @@ export class SnapshotCrawl {
             const isProrata = row.is_prorata === 1;
             const isUpgrade = row.is_upgrade === 1;
 
+            let type = 'new'
+            let mrc = 0
+
+            if (row.is_upgrade === 1 || row.is_prorata === 1) {
+                type = 'prorate';
+                mrc = dpp / months;
+            } else if (row.counter > 1 && String(row.new_subscription) === "0.00") {
+                type = 'recurring';
+            } else {
+                type = 'new';
+                mrc = dpp / months;
+            }
+
             let commissionPercentage = 0;
 
             const commissionRates: Record<string, { [key: number]: number }> = {
@@ -34,8 +47,10 @@ export class SnapshotCrawl {
                 'HOMEPREM300': { 1: 31.25, 6: 6.25, 12: 5.21 },
             };
 
-            if (isProrata || isUpgrade) {
+            if (type === 'prorate') {
                 commissionPercentage = 10;
+            } else if (type === 'recurring') {
+                commissionPercentage = 1.5;
             } else {
                 const rates = commissionRates[serviceId];
                 if (rates) {
@@ -59,11 +74,14 @@ export class SnapshotCrawl {
                 customerServiceId: row.customer_service_id,
                 serviceGroupId: row.service_group_id,
                 serviceId: row.service_id,
+                invoiceNumber: row.invoice_num,
+                invoiceOrder: row.invoice_order,
                 serviceName: row.service_name,
                 invoiceDate: row.invoice_date,
                 month: row.month,
                 dpp: dpp,
                 newSubscription: row.new_subscription,
+                mrc,
                 paidDate: row.paid_date,
                 counter: row.counter,
                 isProrata: isProrata,
@@ -71,6 +89,8 @@ export class SnapshotCrawl {
                 salesId: row.sales_id,
                 managerId: row.manager_id,
                 referralId: row.referral_id,
+                customerServiceAccount: row.customer_service_account,
+                type: type,
                 salesCommission: commissionAmount,
                 salesCommissionPercentage: commissionPercentage,
                 isAdjustment: false
