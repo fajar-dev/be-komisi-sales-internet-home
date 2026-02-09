@@ -68,6 +68,21 @@ export class CommissionController {
                     }
                 });
 
+                const newServiceCount = detail.new.count;
+                let bonus = 0;
+                if (newServiceCount >= 15) {
+                    if (newServiceCount > 20) {
+                        bonus = 1500000 + ((newServiceCount - 20) * 150000);
+                    } else if (newServiceCount === 20) {
+                        bonus = 1500000;
+                    } else if (newServiceCount >= 17) {
+                        bonus = 1000000;
+                    } else if (newServiceCount >= 15) {
+                        bonus = 500000;
+                    }
+                }
+                const totalCommission = stats.commission + bonus;
+
                 const service = Object.values(serviceMap).map((s: any) => ({
                     ...s,
                     commission: this.commissionHelper.formatCurrency(s.commission),
@@ -81,9 +96,11 @@ export class CommissionController {
                 }));
 
                 return {
-                    total: stats.commission,
+                    total: totalCommission,
                     detail: {
                         commission: this.commissionHelper.formatCurrency(stats.commission),
+                        bonus: this.commissionHelper.formatCurrency(bonus),
+                        totalCommission: this.commissionHelper.formatCurrency(totalCommission),
                         mrc: this.commissionHelper.formatCurrency(stats.mrc),
                         dpp: this.commissionHelper.formatCurrency(stats.dpp),
                         count: stats.count,
@@ -99,6 +116,8 @@ export class CommissionController {
 
             // Aggregate Yearly Data
             const yearlyStats = this.commissionHelper.initStats();
+            let yearlyBonus = 0;
+            let yearlyTotalCommission = 0;
             const yearlyDetail = this.commissionHelper.initDetail();
             const yearlyServiceMap: any = this.commissionHelper.initServiceMap();
 
@@ -112,17 +131,19 @@ export class CommissionController {
 
                 // Aggregate Yearly
                 yearlyStats.count += mData.count;
-                yearlyStats.commission += Number(mData.commission);
-                yearlyStats.mrc += Number(mData.mrc);
-                yearlyStats.dpp += Number(mData.dpp);
+                yearlyStats.commission += this.commissionHelper.toNum(mData.commission);
+                yearlyBonus += this.commissionHelper.toNum(mData.bonus);
+                yearlyTotalCommission += this.commissionHelper.toNum(mData.totalCommission);
+                yearlyStats.mrc += this.commissionHelper.toNum(mData.mrc);
+                yearlyStats.dpp += this.commissionHelper.toNum(mData.dpp);
 
                 // Detail
                 ['new', 'prorate', 'recurring'].forEach((key: string) => {
                     const k = key as keyof typeof yearlyDetail;
                     yearlyDetail[k].count += mData.detail[k].count;
-                    yearlyDetail[k].commission += Number(mData.detail[k].commission);
-                    yearlyDetail[k].mrc += Number(mData.detail[k].mrc);
-                    yearlyDetail[k].dpp += Number(mData.detail[k].dpp);
+                    yearlyDetail[k].commission += this.commissionHelper.toNum(mData.detail[k].commission);
+                    yearlyDetail[k].mrc += this.commissionHelper.toNum(mData.detail[k].mrc);
+                    yearlyDetail[k].dpp += this.commissionHelper.toNum(mData.detail[k].dpp);
                 });
 
                 // Service
@@ -130,16 +151,16 @@ export class CommissionController {
                     const sName = s.name;
                     if (yearlyServiceMap[sName]) {
                         yearlyServiceMap[sName].count += s.count;
-                        yearlyServiceMap[sName].commission += Number(s.commission);
-                        yearlyServiceMap[sName].mrc += Number(s.mrc);
-                        yearlyServiceMap[sName].dpp += Number(s.dpp);
+                        yearlyServiceMap[sName].commission += this.commissionHelper.toNum(s.commission);
+                        yearlyServiceMap[sName].mrc += this.commissionHelper.toNum(s.mrc);
+                        yearlyServiceMap[sName].dpp += this.commissionHelper.toNum(s.dpp);
 
                         ['new', 'prorate', 'recurring'].forEach((key: string) => {
                             const k = key as keyof typeof yearlyDetail;
                             yearlyServiceMap[sName].detail[k].count += s.detail[k].count;
-                            yearlyServiceMap[sName].detail[k].commission += Number(s.detail[k].commission);
-                            yearlyServiceMap[sName].detail[k].mrc += Number(s.detail[k].mrc);
-                            yearlyServiceMap[sName].detail[k].dpp += Number(s.detail[k].dpp);
+                            yearlyServiceMap[sName].detail[k].commission += this.commissionHelper.toNum(s.detail[k].commission);
+                            yearlyServiceMap[sName].detail[k].mrc += this.commissionHelper.toNum(s.detail[k].mrc);
+                            yearlyServiceMap[sName].detail[k].dpp += this.commissionHelper.toNum(s.detail[k].dpp);
                         });
                     }
                 });
@@ -159,6 +180,8 @@ export class CommissionController {
 
             const finalResult = {
                 commission: this.commissionHelper.formatCurrency(yearlyStats.commission),
+                bonus: this.commissionHelper.formatCurrency(yearlyBonus),
+                totalCommission: this.commissionHelper.formatCurrency(yearlyTotalCommission),
                 mrc: this.commissionHelper.formatCurrency(yearlyStats.mrc),
                 dpp: this.commissionHelper.formatCurrency(yearlyStats.dpp),
                 count: yearlyStats.count,
@@ -248,22 +271,22 @@ export class CommissionController {
                 }
             }));
 
-            const finalResult = {
-                commission: this.commissionHelper.formatCurrency(stats.commission),
-                mrc: this.commissionHelper.formatCurrency(stats.mrc),
-                dpp: this.commissionHelper.formatCurrency(stats.dpp),
-                count: stats.count,
-                detail: {
-                    new: { ...detail.new, commission: this.commissionHelper.formatCurrency(detail.new.commission), mrc: this.commissionHelper.formatCurrency(detail.new.mrc), dpp: this.commissionHelper.formatCurrency(detail.new.dpp) },
-                    prorate: { ...detail.prorate, commission: this.commissionHelper.formatCurrency(detail.prorate.commission), mrc: this.commissionHelper.formatCurrency(detail.prorate.mrc), dpp: this.commissionHelper.formatCurrency(detail.prorate.dpp) },
-                    recurring: { ...detail.recurring, commission: this.commissionHelper.formatCurrency(detail.recurring.commission), mrc: this.commissionHelper.formatCurrency(detail.recurring.mrc), dpp: this.commissionHelper.formatCurrency(detail.recurring.dpp) }
-                },
-                service
-            };
-
             const newServiceCount = detail.new.count;
             let achievementStatus = "N/A";
             let motivation = "N/A";
+            let bonus = 0;
+
+            if (newServiceCount >= 15) {
+                if (newServiceCount > 20) {
+                     bonus = 1500000 + ((newServiceCount - 20) * 150000);
+                } else if (newServiceCount === 20) {
+                    bonus = 1500000;
+                } else if (newServiceCount >= 17) {
+                    bonus = 1000000;
+                } else if (newServiceCount >= 15) {
+                    bonus = 500000;
+                }
+            }
 
             if (status === 'Permanent') {
                 if (newServiceCount >= 15) {
@@ -294,6 +317,23 @@ export class CommissionController {
                     motivation = "Keep pushing!";
                 }
             }
+            
+            const totalCommission = stats.commission + bonus;
+            
+            const finalResult = {
+                commission: this.commissionHelper.formatCurrency(stats.commission),
+                bonus: this.commissionHelper.formatCurrency(bonus),
+                totalCommission: this.commissionHelper.formatCurrency(totalCommission),
+                mrc: this.commissionHelper.formatCurrency(stats.mrc),
+                dpp: this.commissionHelper.formatCurrency(stats.dpp),
+                count: stats.count,
+                detail: {
+                    new: { ...detail.new, commission: this.commissionHelper.formatCurrency(detail.new.commission), mrc: this.commissionHelper.formatCurrency(detail.new.mrc), dpp: this.commissionHelper.formatCurrency(detail.new.dpp) },
+                    prorate: { ...detail.prorate, commission: this.commissionHelper.formatCurrency(detail.prorate.commission), mrc: this.commissionHelper.formatCurrency(detail.prorate.mrc), dpp: this.commissionHelper.formatCurrency(detail.prorate.dpp) },
+                    recurring: { ...detail.recurring, commission: this.commissionHelper.formatCurrency(detail.recurring.commission), mrc: this.commissionHelper.formatCurrency(detail.recurring.mrc), dpp: this.commissionHelper.formatCurrency(detail.recurring.dpp) }
+                },
+                service
+            };
 
             return c.json(this.apiResponse.success("Commission period data retrieved successfully", {
                 ...finalResult,
