@@ -104,6 +104,7 @@ export class Nusawork {
             jobLevel: emp.job_level,
             branch: emp.branch_name,
             managerId: emp.id_report_to_value,
+            status: emp.status_join,
             hasDashboard: emp.job_level === 'General Manager' ? false : true,
         }))
     }
@@ -131,6 +132,7 @@ export class Nusawork {
             jobLevel: emp.job_level,
             branch: emp.branch_name,
             managerId: null,
+            status: emp.status_join,
         }))
     }
 }

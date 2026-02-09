@@ -14,9 +14,9 @@ export class SnapshotController {
 
     async salesInvoice(c: Context) {
         try {
-            const { startDate, endDate } = c.req.query();
+            const { start, end } = c.req.query();
             const employeeId = c.req.param('id');
-            const result = await this.snapshotService.getSnapshotBySales(employeeId, startDate, endDate);
+            const result = await this.snapshotService.getSnapshotBySales(employeeId, start, end);
 
             const data = result.map((row: any) => ({
                 ai: row.ai,
@@ -31,6 +31,7 @@ export class SnapshotController {
                 customerId: row.customer_id,
                 customerName: row.customer_name,
                 customerCompany: row.customer_company,
+                customerServiceAccount: row.customer_service_account,
                 serviceGroupId: row.service_group_id,
                 serviceId: row.service_id,
                 serviceName: row.service_name,

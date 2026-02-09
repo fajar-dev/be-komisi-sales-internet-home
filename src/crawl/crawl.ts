@@ -10,10 +10,10 @@ class Crawl {
     async run() {
         try {
             console.log("Starting the crawl...");
-            console.log("Starting the snapshot crawl...");
-            await this.snapshotCrawl.crawlInvoice();
-            console.log("Snapshot crawl finished.");
-            console.log("Starting the employee crawl...");
+            // console.log("Starting the snapshot crawl...");
+            // await this.snapshotCrawl.crawlInvoice();
+            // console.log("Snapshot crawl finished.");
+            // console.log("Starting the employee crawl...");
             await this.employeeCrawl.crawlEmployee();
             console.log("Employee crawl finished.");
             process.exit(0); 

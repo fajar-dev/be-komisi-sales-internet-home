@@ -15,10 +15,11 @@ export class EmployeeService {
             organization_name,
             job_level,
             branch,
+            status,
             manager_id,
             has_dashboard
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
             employee_id = VALUES(employee_id),
             name = VALUES(name),
@@ -41,6 +42,7 @@ export class EmployeeService {
             data.organizationName,
             data.jobLevel,
             data.branch,
+            data.status,
             data.managerId ?? null,     
             data.hasDashboard ?? false,
             ]

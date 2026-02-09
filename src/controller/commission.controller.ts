@@ -177,4 +177,134 @@ export class CommissionController {
         }
     }
 
+    async salesCommissionPeriod(c: Context) {
+        try {
+            const employeeId = c.req.param("id");
+            const startDate = c.req.query("start");
+            const endDate = c.req.query("end");
+            const status = c.req.query("status");
+
+            if (!startDate || !endDate) {
+                return c.json(this.apiResponse.error("Missing start or end date", undefined), 400);
+            }
+
+            const rows = await this.snapshotService.getSnapshotBySales(employeeId, startDate, endDate);
+            
+            const stats = this.commissionHelper.initStats();
+            const detail = this.commissionHelper.initDetail();
+            const serviceMap: Record<string, any> = this.commissionHelper.initServiceMap();
+
+            rows.forEach((row: any) => {
+                if (row.is_deleted) return;
+
+                const commission = this.commissionHelper.toNum(row.sales_commission);
+                const mrc = this.commissionHelper.toNum(row.mrc);
+                const dpp = this.commissionHelper.toNum(row.dpp);
+                let type = (row.type || 'recurring') as any;
+                if (type === 'prorata') type = 'prorate';
+                
+                const safeType = type as keyof typeof detail;
+                const serviceName = this.commissionHelper.getServiceName(row.service_id);
+
+                // Totals
+                stats.count++;
+                stats.commission += commission;
+                stats.mrc += mrc;
+                stats.dpp += dpp;
+
+                // Detail by Type
+                if (detail[safeType]) {
+                    detail[safeType].count++;
+                    detail[safeType].commission += commission;
+                    detail[safeType].mrc += mrc;
+                    detail[safeType].dpp += dpp;
+                }
+
+                // Service Breakdown
+                if (serviceMap[serviceName]) {
+                    serviceMap[serviceName].count++;
+                    serviceMap[serviceName].commission += commission;
+                    serviceMap[serviceName].mrc += mrc;
+                    serviceMap[serviceName].dpp += dpp;
+                    
+                    if (serviceMap[serviceName].detail[safeType]) {
+                        serviceMap[serviceName].detail[safeType].count++;
+                        serviceMap[serviceName].detail[safeType].commission += commission;
+                        serviceMap[serviceName].detail[safeType].mrc += mrc;
+                        serviceMap[serviceName].detail[safeType].dpp += dpp;
+                    }
+                }
+            });
+
+            const service = Object.values(serviceMap).map((s: any) => ({
+                ...s,
+                commission: this.commissionHelper.formatCurrency(s.commission),
+                mrc: this.commissionHelper.formatCurrency(s.mrc),
+                dpp: this.commissionHelper.formatCurrency(s.dpp),
+                detail: {
+                    new: { ...s.detail.new, commission: this.commissionHelper.formatCurrency(s.detail.new.commission), mrc: this.commissionHelper.formatCurrency(s.detail.new.mrc), dpp: this.commissionHelper.formatCurrency(s.detail.new.dpp) },
+                    prorate: { ...s.detail.prorate, commission: this.commissionHelper.formatCurrency(s.detail.prorate.commission), mrc: this.commissionHelper.formatCurrency(s.detail.prorate.mrc), dpp: this.commissionHelper.formatCurrency(s.detail.prorate.dpp) },
+                    recurring: { ...s.detail.recurring, commission: this.commissionHelper.formatCurrency(s.detail.recurring.commission), mrc: this.commissionHelper.formatCurrency(s.detail.recurring.mrc), dpp: this.commissionHelper.formatCurrency(s.detail.recurring.dpp) }
+                }
+            }));
+
+            const finalResult = {
+                commission: this.commissionHelper.formatCurrency(stats.commission),
+                mrc: this.commissionHelper.formatCurrency(stats.mrc),
+                dpp: this.commissionHelper.formatCurrency(stats.dpp),
+                count: stats.count,
+                detail: {
+                    new: { ...detail.new, commission: this.commissionHelper.formatCurrency(detail.new.commission), mrc: this.commissionHelper.formatCurrency(detail.new.mrc), dpp: this.commissionHelper.formatCurrency(detail.new.dpp) },
+                    prorate: { ...detail.prorate, commission: this.commissionHelper.formatCurrency(detail.prorate.commission), mrc: this.commissionHelper.formatCurrency(detail.prorate.mrc), dpp: this.commissionHelper.formatCurrency(detail.prorate.dpp) },
+                    recurring: { ...detail.recurring, commission: this.commissionHelper.formatCurrency(detail.recurring.commission), mrc: this.commissionHelper.formatCurrency(detail.recurring.mrc), dpp: this.commissionHelper.formatCurrency(detail.recurring.dpp) }
+                },
+                service
+            };
+
+            const newServiceCount = detail.new.count;
+            let achievementStatus = "N/A";
+            let motivation = "N/A";
+
+            if (status === 'Permanent') {
+                if (newServiceCount >= 15) {
+                    achievementStatus = "Capai target Bonus";
+                    motivation = "Congratulations on your outstanding achievement!";
+                } else if (newServiceCount >= 12) {
+                    achievementStatus = "Capai target";
+                    motivation = "Bravo! Keep up the great work!";
+                } else if (newServiceCount < 3) {
+                    achievementStatus = "SP1";
+                    motivation = "Keep fighting and don't give up!";
+                } else {
+                    achievementStatus = "Tidak Capai target";
+                    motivation = "Just a little more fights, go on!";
+                }
+            } else if (status === 'Probation' || status === 'Contract') {
+                if (newServiceCount >= 8) {
+                    achievementStatus = "Excelent";
+                    motivation = "Congratulations on your outstanding achievement!";
+                } else if (newServiceCount >= 5) {
+                    achievementStatus = "Very Good";
+                    motivation = "Bravo! Keep up the great work!";
+                } else if (newServiceCount >= 3) {
+                    achievementStatus = "Average";
+                    motivation = "You’re much better than what you think!";
+                } else {
+                    achievementStatus = "Below Average";
+                    motivation = "Keep pushing!";
+                }
+            }
+
+            return c.json(this.apiResponse.success("Commission period data retrieved successfully", {
+                ...finalResult,
+                achievement: {
+                    status: achievementStatus,
+                    motivation: motivation
+                }
+            }));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("An error occurred", error.message), 500);
+        }
+    }
+
 }

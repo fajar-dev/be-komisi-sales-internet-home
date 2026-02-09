@@ -51,6 +51,7 @@ CREATE TABLE employee (
     organization_name VARCHAR(255) NOT NULL,
     job_level VARCHAR(50) NOT NULL,
     branch VARCHAR(255) NOT NULL,
+    status VARCHAR(255) NOT NULL,
     manager_id INT NULL,
     has_dashboard BOOLEAN NOT NULL DEFAULT false
 );
