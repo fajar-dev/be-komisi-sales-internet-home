@@ -108,6 +108,7 @@ export class Nusawork {
             hasDashboard: emp.job_level === 'General Manager' ? false : true,
         }))
     }
+    
 
     /**
      * Ambil daftar account manager digital business dari Nusawork.

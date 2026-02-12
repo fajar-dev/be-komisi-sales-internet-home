@@ -19,7 +19,7 @@ export class AdjustmentService {
                 e.photo_profile as requestPhotoProfile,
                 s.customer_company as companyName,
                 s.customer_id as customerId,
-                s.service_group_id as serviceGroupId,
+                s.service_group as serviceGroupId,
                 s.service_name as serviceName,
                 s.invoice_number as invoiceNumber,
                 s.invoice_order as invoiceOrder

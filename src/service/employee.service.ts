@@ -94,15 +94,23 @@ export class EmployeeService {
         return rows.length > 0 ? rows[0] : null;
     }
 
-    static async getHierarchy(employeeId: string) {
+    static async getHierarchy(employeeId: string, search?: string) {
         const employee: any = await this.getEmployeeByEmployeeId(employeeId);
 
         if (employee && employee.manager_id == null) {
-            const [rows]: any[] = await pool.query(`SELECT * FROM employee WHERE has_dashboard = true`);
+            let query = `SELECT * FROM employee WHERE has_dashboard = true`;
+            const params: any[] = [];
+
+            if (search) {
+                query += ` AND (name LIKE ? OR employee_id LIKE ? OR job_position LIKE ? OR organization_name LIKE ? OR job_level LIKE ? OR branch LIKE ?)`;
+                params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+            }
+
+            const [rows]: any[] = await pool.query(query, params);
             return Array.isArray(rows) ? rows : [];
         }
 
-        const [rows]: any[] = await pool.query(`
+        let query = `
             WITH RECURSIVE employee_hierarchy AS (
                 SELECT *, 0 as depth
                 FROM employee
@@ -114,9 +122,43 @@ export class EmployeeService {
                 FROM employee e
                 INNER JOIN employee_hierarchy eh ON e.manager_id = eh.id
             )
-            SELECT * FROM employee_hierarchy WHERE has_dashboard = true ORDER BY depth ASC ;
-        `, [employeeId]);
+            SELECT * FROM employee_hierarchy WHERE has_dashboard = true
+        `;
+        
+        const params: any[] = [employeeId];
+
+        if (search) {
+            query += ` AND (name LIKE ? OR employee_id LIKE ?)`;
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        query += ` ORDER BY depth ASC`;
+
+        const [rows]: any[] = await pool.query(query, params);
 
         return Array.isArray(rows) ? rows : [];
     }
+
+    static async insertStatusPeriod(employeeId: string, startDate: string, endDate: string, status: string) {
+        const [existing] = await pool.query<RowDataPacket[]>(
+            `SELECT id FROM status_period WHERE employee_id = ? AND start_date = ? AND end_date = ?`,
+            [employeeId, startDate, endDate]
+        );
+
+        if (existing.length > 0) {
+            return;
+        }
+
+        const [rows] = await pool.query(
+            `
+            INSERT INTO status_period (
+            employee_id, start_date, end_date, status
+            ) VALUES (?, ?, ?, ?)
+            `,
+            [employeeId, startDate, endDate, status]
+        );
+
+        return rows;
+    }
+
 }

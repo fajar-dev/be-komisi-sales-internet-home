@@ -14,9 +14,9 @@ export class SnapshotController {
 
     async salesInvoice(c: Context) {
         try {
-            const { start, end } = c.req.query();
+            const { start, end, type } = c.req.query();
             const employeeId = c.req.param('id');
-            const result = await this.snapshotService.getSnapshotBySales(employeeId, start, end);
+            const result = await this.snapshotService.getSnapshotBySales(employeeId, start, end, type);
 
             const data = result.map((row: any) => ({
                 ai: row.ai,

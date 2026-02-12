@@ -5,34 +5,40 @@ export class SnapshotService {
         const sql = `
             INSERT INTO snapshot (
                 ai,
+                ai_receipt,
                 customer_id,
                 customer_name,
                 customer_company,
                 customer_service_id,
                 customer_service_account,
-                service_group_id,
+                service_group,
                 service_id,
                 service_name,
                 invoice_number,
                 invoice_order,
                 invoice_date,
+                period_start,
+                period_end,
                 month,
                 dpp,
-                new_subscription,
                 paid_date,
+                new_subscription,
                 counter,
-                type,
+                is_prorate,
+                is_upgrade,
+                line_rental,
+                category,
                 sales_id,
                 manager_id,
-                referral_id,
+                reseller_name,
                 mrc,
                 sales_commission,
                 sales_commission_percentage,
-                is_adjustment,
-                is_deleted
+                type,
+                is_adjustment
             )
             SELECT
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, false
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             WHERE NOT EXISTS (
                 SELECT 1
                 FROM snapshot s
@@ -42,31 +48,38 @@ export class SnapshotService {
 
         const params = [
             data.ai,
+            data.aiReceipt,
             data.customerId,
             data.customerName,
             data.customerCompany,
             data.customerServiceId,
-            data.customerServiceAccount ?? null,
-            data.serviceGroupId,
+            data.customerServiceAccount,
+            data.serviceGroup,
             data.serviceId,
             data.serviceName,
             data.invoiceNumber,
             data.invoiceOrder,
             data.invoiceDate,
+            data.periodStart,
+            data.periodEnd,
             data.month,
             data.dpp,
+            data.paidDate,
             data.newSubscription,
-            data.paidDate ?? null,
-            data.counter ?? 0,
-            data.type ?? 'recurring',
+            data.counter,
+            data.isProrate,
+            data.isUpgrade,
+            data.lineRental,
+            data.category,
             data.salesId,
             data.managerId,
-            data.referralId ?? null,
-            data.mrc ?? 0,
-            data.salesCommission ?? 0,
-            data.salesCommissionPercentage ?? 0,
-            data.isAdjustment ?? false,
-            data.ai
+            data.resellerName,
+            data.mrc,
+            data.salesCommission,
+            data.salesCommissionPercentage,
+            data.type,
+            data.isAdjustment,
+            data.aiInvoice
         ];
 
         const [result] = await pool.query(sql, params);
@@ -74,16 +87,26 @@ export class SnapshotService {
         return result;
     }
 
-    static async getSnapshotBySales(salesId: string, startDate: string, endDate: string) {
-        const [rows] = await pool.query(`
+    static async getSnapshotBySales(salesId: string, startDate: string, endDate: string, type?: string) {
+        let query = `
             SELECT s.* 
             FROM snapshot s
             LEFT JOIN adjustment a 
                 ON s.ai = a.ai
             WHERE s.sales_id = ?
             AND s.paid_date BETWEEN ? AND ?
-             group by s.ai
-        `, [salesId, startDate, endDate]);
+            AND NOT (s.service_id IN ('NFSP030', 'FSP100', 'NFSP200') AND s.type = 'recurring')
+        `;
+        const params: any[] = [salesId, startDate, endDate];
+
+        if (type) {
+            query += ` AND s.type = ?`;
+            params.push(type);
+        }
+
+        query += ` GROUP BY s.ai`;
+
+        const [rows] = await pool.query(query, params);
         return rows as any[];
     }
 
