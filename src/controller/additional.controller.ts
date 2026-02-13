@@ -8,9 +8,14 @@ export class AdditionalController {
 
     async getPeriod(c: Context) {
         const { startDate, endDate } = this.periodHelper.getStartAndEndDateForCurrentMonth();
+        const month = parseInt(endDate.split('-')[1]);
+        const year = parseInt(endDate.split('-')[0]);
+
         return c.json({
             start: startDate,
-            end: endDate
-        })
+            end: endDate,
+            month,
+            year
+        });
     }
 }

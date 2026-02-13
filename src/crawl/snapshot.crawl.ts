@@ -12,66 +12,35 @@ export class SnapshotCrawl {
     async crawlInvoice() {
         const { startDate, endDate } = this.periodHelper.getStartAndEndDateForCurrentMonth();
         const rows = await this.isService.getInvoiceByDateRange(startDate, endDate);
-        // const rows = await this.isService.getCustomerInvoiceByDateRange('2025-12-26', '2026-01-25');
+        // const rows = await this.isService.getInvoiceByDateRange('2025-12-26', '2026-01-25');
 
-        const commissionRates: Record<string, { [key: number]: number }> = {
-            'BFLITE': { 1: 28.38, 6: 6.55, 12: 5.09 },
-            'NFSP030': { 1: 20.00, 6: 5.56, 12: 4.44 },
-            'NFSP100': { 1: 20.00, 6: 5.56, 12: 4.44 },
-            'NFSP200': { 1: 26.00, 6: 6.00, 12: 4.67 },
-            'HOME100': { 1: 28.57, 6: 5.95, 12: 4.76 },
-            'HOMEADV200': { 1: 27.78, 6: 5.56, 12: 4.63 },
-            'HOMEADV': { 1: 27.78, 6: 5.56, 12: 4.63 },
-            'HOMEPREM300': { 1: 31.25, 6: 6.25, 12: 5.21 },
-        };
 
         const commissionData = rows.map((row: any) => {
             const dpp = Number(row.dpp ?? 0);
             const months = Number(row.month || 1);
-            const serviceId = row.service_id;
 
-            let type = null;
+            let type = '';
+            
             let mrc = 0;
-            let commissionPercentage = 0;
-
+            
             if (row.category === 'home') {
                 if (row.is_prorate == 1) {
                     type = 'prorate';
-                    commissionPercentage = 10;
                 } else if (row.is_upgrade == 1) {
                     type = 'upgrade';
-                    mrc = dpp / months;
-                    const rates = commissionRates[serviceId];
-                    if (rates) {
-                        if (['NFSP030', 'NFSP100', 'NFSP200'].includes(serviceId)) {
-                            commissionPercentage = months >= 12 ? rates[12] : (months >= 6 ? rates[6] : rates[1]);
-                        } else {
-                            commissionPercentage = months >= 12 ? rates[12] : (months > 1 ? rates[6] : rates[1]);
-                        }
-                    }
+                     mrc = dpp / months;
                 } else if (row.counter > 1 && String(row.new_subscription) === "0.00") {
                     type = 'recurring';
-                    commissionPercentage = 1.5;
                 } else {
                     type = 'new';
-                    mrc = dpp / months;
-                    const rates = commissionRates[serviceId];
-                    if (rates) {
-                        if (['NFSP030', 'NFSP100', 'NFSP200'].includes(serviceId)) {
-                            commissionPercentage = months >= 12 ? rates[12] : (months >= 6 ? rates[6] : rates[1]);
-                        } else {
-                            commissionPercentage = months >= 12 ? rates[12] : (months > 1 ? rates[6] : rates[1]);
-                        }
-                    }
+                     mrc = dpp / months;
                 }
             } else if (row.category === 'setup') {
-                commissionPercentage = 5;
+                type = 'setup';
             } else if (row.category === 'alat') {
-                commissionPercentage = 2;
+                type = 'alat';
             }
-
-            const commissionAmount = dpp * (commissionPercentage / 100);
-
+            
             return {
                 ai: row.ai_invoice,
                 aiReceipt: row.ai_receipt,
@@ -83,9 +52,8 @@ export class SnapshotCrawl {
                 serviceGroup: row.service_group,
                 serviceId: row.service_id,
                 serviceName: row.service_name,
-                invoiceNumber: row.invoice_number,
-                invoiceOrder: row.invoice_order,
                 invoiceDate: row.invoice_date,
+                invoiceDueDate: row.invoice_due_date,
                 periodStart: row.period_start,
                 periodEnd: row.period_end,
                 month: row.month,
@@ -101,8 +69,6 @@ export class SnapshotCrawl {
                 managerId: row.manager_id,
                 resellerName: row.reseller_name,
                 mrc,
-                salesCommission: commissionAmount,
-                salesCommissionPercentage: commissionPercentage,
                 type,
                 isAdjustment: false
             };

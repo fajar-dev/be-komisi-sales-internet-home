@@ -30,7 +30,7 @@ route.get('/sales/:id/commission', (c) => new CommissionController().salesCommis
 route.get('/sales/:id/commission/period', (c) => new CommissionController().salesCommissionPeriod(c));
 
 
-route.get('/sales/:id/invoice', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesInvoice(c));
+route.get('/sales/:id/invoice',  (c) => new SnapshotController().salesInvoice(c));
 route.get('/sales/:id/invoice/:ai', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesSnapshotByAi(c));
 route.get('/manager/:id/team', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().managerTeamCommission(c));
 

@@ -106,7 +106,7 @@ export class Nusawork {
             managerId: emp.id_report_to_value,
             status: emp.status_join,
             hasDashboard: emp.job_level === 'General Manager' ? false : true,
-        }))
+        }))        
     }
     
 

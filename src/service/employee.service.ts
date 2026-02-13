@@ -161,4 +161,13 @@ export class EmployeeService {
         return rows;
     }
 
+    static async getStatusByPeriod(employeeId: string, startDate: string, endDate: string) {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT status FROM status_period WHERE employee_id = ? AND start_date = ? AND end_date = ? LIMIT 1`,
+            [employeeId, startDate, endDate]
+        );
+
+        return rows.length > 0 ? rows[0].status : null;
+    }
+
 }
