@@ -2,105 +2,110 @@ import { pool } from "../config/database";
 
 export class SnapshotService {
     static async insertSnapshot(data: any) {
-        const sql = `
-            INSERT INTO snapshot (
-                ai,
-                ai_receipt,
-                customer_id,
-                customer_name,
-                customer_company,
-                customer_service_id,
-                customer_service_account,
-                service_group,
-                service_id,
-                service_name,
-                invoice_date,
-                invoice_due_date,
-                period_start,
-                period_end,
-                month,
-                dpp,
-                paid_date,
-                new_subscription,
-                counter,
-                is_prorate,
-                is_upgrade,
-                line_rental,
-                category,
-                sales_id,
-                manager_id,
-                reseller_name,
-                mrc,
-                type,
-                is_adjustment
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                ai_receipt = IF(is_adjustment = 1, ai_receipt, VALUES(ai_receipt)),
-                customer_id = IF(is_adjustment = 1, customer_id, VALUES(customer_id)),
-                customer_name = IF(is_adjustment = 1, customer_name, VALUES(customer_name)),
-                customer_company = IF(is_adjustment = 1, customer_company, VALUES(customer_company)),
-                customer_service_id = IF(is_adjustment = 1, customer_service_id, VALUES(customer_service_id)),
-                customer_service_account = IF(is_adjustment = 1, customer_service_account, VALUES(customer_service_account)),
-                service_group = IF(is_adjustment = 1, service_group, VALUES(service_group)),
-                service_id = IF(is_adjustment = 1, service_id, VALUES(service_id)),
-                service_name = IF(is_adjustment = 1, service_name, VALUES(service_name)),
-                invoice_date = IF(is_adjustment = 1, invoice_date, VALUES(invoice_date)),
-                invoice_due_date = IF(is_adjustment = 1, invoice_due_date, VALUES(invoice_due_date)),
-                period_start = IF(is_adjustment = 1, period_start, VALUES(period_start)),
-                period_end = IF(is_adjustment = 1, period_end, VALUES(period_end)),
-                month = IF(is_adjustment = 1, month, VALUES(month)),
-                dpp = IF(is_adjustment = 1, dpp, VALUES(dpp)),
-                paid_date = IF(is_adjustment = 1, paid_date, VALUES(paid_date)),
-                new_subscription = IF(is_adjustment = 1, new_subscription, VALUES(new_subscription)),
-                counter = IF(is_adjustment = 1, counter, VALUES(counter)),
-                is_prorate = IF(is_adjustment = 1, is_prorate, VALUES(is_prorate)),
-                is_upgrade = IF(is_adjustment = 1, is_upgrade, VALUES(is_upgrade)),
-                line_rental = IF(is_adjustment = 1, line_rental, VALUES(line_rental)),
-                category = IF(is_adjustment = 1, category, VALUES(category)),
-                sales_id = IF(is_adjustment = 1, sales_id, VALUES(sales_id)),
-                manager_id = IF(is_adjustment = 1, manager_id, VALUES(manager_id)),
-                reseller_name = IF(is_adjustment = 1, reseller_name, VALUES(reseller_name)),
-                mrc = IF(is_adjustment = 1, mrc, VALUES(mrc)),
-                type = IF(is_adjustment = 1, type, VALUES(type));
-        `;
+    const sql = `
+        INSERT INTO snapshot (
+        ai, ai_receipt, customer_id, customer_name, customer_company,
+        customer_service_id, customer_service_account, service_group,
+        service_id, service_name, invoice_date, invoice_due_date,
+        period_start, period_end, month, dpp, paid_date, new_subscription,
+        counter, is_prorate, is_upgrade, line_rental, category,
+        sales_id, manager_id, reseller_name, mrc, type, is_adjustment
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        ai_receipt = IF(is_adjustment = 1, ai_receipt, VALUES(ai_receipt)),
+        customer_id = IF(is_adjustment = 1, customer_id, VALUES(customer_id)),
+        customer_name = IF(is_adjustment = 1, customer_name, VALUES(customer_name)),
+        customer_company = IF(is_adjustment = 1, customer_company, VALUES(customer_company)),
+        customer_service_id = IF(is_adjustment = 1, customer_service_id, VALUES(customer_service_id)),
+        customer_service_account = IF(is_adjustment = 1, customer_service_account, VALUES(customer_service_account)),
+        service_group = IF(is_adjustment = 1, service_group, VALUES(service_group)),
+        service_id = IF(is_adjustment = 1, service_id, VALUES(service_id)),
+        service_name = IF(is_adjustment = 1, service_name, VALUES(service_name)),
+        invoice_date = IF(is_adjustment = 1, invoice_date, VALUES(invoice_date)),
+        invoice_due_date = IF(is_adjustment = 1, invoice_due_date, VALUES(invoice_due_date)),
+        period_start = IF(is_adjustment = 1, period_start, VALUES(period_start)),
+        period_end = IF(is_adjustment = 1, period_end, VALUES(period_end)),
+        month = IF(is_adjustment = 1, month, VALUES(month)),
+        dpp = IF(is_adjustment = 1, dpp, VALUES(dpp)),
+        paid_date = IF(is_adjustment = 1, paid_date, VALUES(paid_date)),
+        new_subscription = IF(is_adjustment = 1, new_subscription, VALUES(new_subscription)),
+        counter = IF(is_adjustment = 1, counter, VALUES(counter)),
+        is_prorate = IF(is_adjustment = 1, is_prorate, VALUES(is_prorate)),
+        is_upgrade = IF(is_adjustment = 1, is_upgrade, VALUES(is_upgrade)),
+        line_rental = IF(is_adjustment = 1, line_rental, VALUES(line_rental)),
+        category = IF(is_adjustment = 1, category, VALUES(category)),
+        sales_id = IF(is_adjustment = 1, sales_id, VALUES(sales_id)),
+        manager_id = IF(is_adjustment = 1, manager_id, VALUES(manager_id)),
+        reseller_name = IF(is_adjustment = 1, reseller_name, VALUES(reseller_name)),
+        mrc = IF(is_adjustment = 1, mrc, VALUES(mrc)),
+        type = IF(is_adjustment = 1, type, VALUES(type));
+    `;
 
-        const params = [
-            data.ai,
-            data.aiReceipt,
-            data.customerId,
-            data.customerName,
-            data.customerCompany,
-            data.customerServiceId,
-            data.customerServiceAccount,
-            data.serviceGroup,
-            data.serviceId,
-            data.serviceName,
-            data.invoiceDate,
-            data.invoiceDueDate,
-            data.periodStart,
-            data.periodEnd,
-            data.month,
-            data.dpp,
-            data.paidDate,
-            data.newSubscription,
-            data.counter,
-            data.isProrate,
-            data.isUpgrade,
-            data.lineRental,
-            data.category,
-            data.salesId,
-            data.managerId,
-            data.resellerName,
-            data.mrc,
-            data.type,
-            data.isAdjustment
-        ];
+    const nullIfEmpty = (v: any) => (v === '' || v === undefined ? null : v);
 
-        const [result] = await pool.query(sql, params);
+    const numOrNull = (v: any) => {
+        if (v === '' || v === null || v === undefined) return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+    };
 
-        return result;
+    const intOrNull = (v: any) => {
+        const n = numOrNull(v);
+        return n === null ? null : Math.trunc(n);
+    };
+
+    const tinyIntOrNull = (v: any) => {
+        if (v === '' || v === null || v === undefined) return null;
+        if (v === true || v === 'true') return 1;
+        if (v === false || v === 'false') return 0;
+        const n = Number(v);
+        return n === 0 || n === 1 ? n : null;
+    };
+
+    const params = [
+        data.ai,
+        nullIfEmpty(data.aiReceipt),
+
+        data.customerId,
+        nullIfEmpty(data.customerName),
+        nullIfEmpty(data.customerCompany),
+        nullIfEmpty(data.customerServiceId),
+        nullIfEmpty(data.customerServiceAccount),
+        nullIfEmpty(data.serviceGroup),
+        nullIfEmpty(data.serviceId),
+        nullIfEmpty(data.serviceName),
+
+        nullIfEmpty(data.invoiceDate),
+        nullIfEmpty(data.invoiceDueDate),
+        nullIfEmpty(data.periodStart),
+        nullIfEmpty(data.periodEnd),
+        intOrNull(data.month),
+
+        numOrNull(data.dpp),
+        nullIfEmpty(data.paidDate),
+
+        numOrNull(data.newSubscription),
+        intOrNull(data.counter),
+        tinyIntOrNull(data.isProrate),
+        tinyIntOrNull(data.isUpgrade),
+        numOrNull(data.lineRental),
+
+        data.category,
+        nullIfEmpty(data.salesId),
+        nullIfEmpty(data.managerId),
+        nullIfEmpty(data.resellerName),
+
+        numOrNull(data.mrc),
+        nullIfEmpty(data.type),
+
+        tinyIntOrNull(data.isAdjustment) ?? 0, // BOOLEAN: mysql2 usually accepts true/false too
+    ];
+
+    const [result] = await pool.query(sql, params);
+    return result;
     }
+
 
     static async getSnapshotBySales(salesId: string, startDate: string, endDate: string, type?: string) {
         let query = `

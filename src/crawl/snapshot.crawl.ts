@@ -19,7 +19,7 @@ export class SnapshotCrawl {
             const dpp = Number(row.dpp ?? 0);
             const months = Number(row.month || 1);
 
-            let type = '';
+            let type = null;
             
             let mrc = 0;
             
@@ -35,10 +35,6 @@ export class SnapshotCrawl {
                     type = 'new';
                      mrc = dpp / months;
                 }
-            } else if (row.category === 'setup') {
-                type = 'setup';
-            } else if (row.category === 'alat') {
-                type = 'alat';
             }
             
             return {
