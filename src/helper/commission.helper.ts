@@ -141,4 +141,138 @@ export class CommissionHelper {
         const commission = dpp * (commissionPercentage / 100);
         return { commission, commissionPercentage };
     }
+
+    static calculateEmployeeMonthlyStats(rows: any[], status: string | null) {
+        const stats = this.initStats();
+        const detail = this.initDetail();
+        const serviceMap: Record<string, any> = this.initServiceMap();
+
+        // 1. First pass
+        let nusaSelectaCount = 0;
+        let totalNewCount = 0;
+        const customerSetupMap: Record<string, boolean> = {};
+
+        rows.forEach((row: any) => {
+             if (row.is_deleted) return;
+             const serviceName = this.getServiceName(row.service_id);
+             
+             let type = row.type;
+             if (row.category === 'alat') type = 'alat';
+             else if (row.category === 'setup') type = 'setup';
+             else if (!type) type = 'recurring';
+             if (type === 'prorata') type = 'prorate';
+             
+             if (type === 'new') {
+                 totalNewCount++;
+                 if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
+                    nusaSelectaCount++;
+                 }
+             }
+
+             if (type === 'setup') {
+                 customerSetupMap[row.customer_id] = true;
+             }
+        });
+
+        const standardNewCount = totalNewCount - nusaSelectaCount;
+        const nusaSelectaPairs = Math.floor(nusaSelectaCount / 2);
+        const activityCount = standardNewCount + nusaSelectaPairs;
+
+        // 2. Second pass
+        rows.forEach((row: any) => {
+            if (row.is_deleted) return;
+
+            const mrc = this.toNum(row.mrc);
+            const dpp = this.toNum(row.dpp);
+
+            let type = row.type;
+            if (row.category === 'alat') type = 'alat';
+            else if (row.category === 'setup') type = 'setup';
+            else if (!type) type = 'recurring';
+
+            if (type === 'prorata') type = 'prorate';
+
+            const months = Number(row.month || 1);
+            const hasSetup = customerSetupMap[row.customer_id] || false; 
+
+            const { commission: calculatedCommission } = this.calculateCommission(
+                row, 
+                dpp, 
+                months, 
+                row.service_id, 
+                row.category, 
+                type,
+                status as string,
+                activityCount,
+                hasSetup  
+            );
+
+            const commission = calculatedCommission;
+            
+            const safeType = type as keyof typeof detail;
+            const serviceName = this.getServiceName(row.service_id);
+
+            // Monthly Totals
+            stats.count++;
+            stats.commission += commission;
+            stats.mrc += mrc;
+            stats.dpp += dpp;
+
+            // Detail by Type
+            if (detail[safeType]) {
+                detail[safeType].count++;
+                detail[safeType].commission += commission;
+                detail[safeType].mrc += mrc;
+                detail[safeType].dpp += dpp;
+            }
+
+            // Service Breakdown
+            if (serviceMap[serviceName]) {
+                serviceMap[serviceName].count++;
+                serviceMap[serviceName].commission += commission;
+                serviceMap[serviceName].mrc += mrc;
+                serviceMap[serviceName].dpp += dpp;
+                
+                if (serviceMap[serviceName].detail[safeType]) {
+                    serviceMap[serviceName].detail[safeType].count++;
+                    serviceMap[serviceName].detail[safeType].commission += commission;
+                    serviceMap[serviceName].detail[safeType].mrc += mrc;
+                    serviceMap[serviceName].detail[safeType].dpp += dpp;
+                }
+            }
+        });
+
+        let achievementStatus = "N/A";
+
+        if (status === 'Permanent') {
+            if (activityCount >= 15) {
+                achievementStatus = "Capai target Bonus";
+            } else if (activityCount >= 12) {
+                achievementStatus = "Capai target";
+            } else if (activityCount < 3) {
+                achievementStatus = "SP1";
+            } else {
+                achievementStatus = "Tidak Capai target";
+            }
+        } else if (status === 'Probation') {
+            if (activityCount >= 8) {
+                achievementStatus = "Excelent";
+            } else if (activityCount >= 5) {
+                achievementStatus = "Very Good";
+            } else if (activityCount >= 3) {
+                achievementStatus = "Average";
+            } else {
+                achievementStatus = "Below Average";
+            }
+        }
+
+        return {
+            stats,
+            detail,
+            serviceMap,
+            activityCount,
+            status,
+            achievementStatus
+        };
+    }
 }
