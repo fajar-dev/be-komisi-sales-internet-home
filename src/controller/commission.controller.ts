@@ -28,9 +28,10 @@ export class CommissionController {
                 const detail = this.commissionHelper.initDetail();
                 const serviceMap: Record<string, any> = this.commissionHelper.initServiceMap();
 
-                // 1. First pass: Calculate Activity Count
+                // 1. First pass: Calculate Activity Count and identify setup categories per customer
                 let nusaSelectaCount = 0;
                 let totalNewCount = 0;
+                const customerSetupMap: Record<string, boolean> = {};
 
                 rows.forEach((row: any) => {
                      if (row.is_deleted) return;
@@ -47,6 +48,10 @@ export class CommissionController {
                          if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
                             nusaSelectaCount++;
                          }
+                     }
+
+                     if (type === 'setup') {
+                         customerSetupMap[row.customer_id] = true;
                      }
                 });
 
@@ -69,6 +74,7 @@ export class CommissionController {
                     if (type === 'prorata') type = 'prorate';
 
                     const months = Number(row.month || 1);
+                    const hasSetup = customerSetupMap[row.customer_id] || false; 
 
                     const { commission: calculatedCommission } = CommissionHelper.calculateCommission(
                         row, 
@@ -78,43 +84,44 @@ export class CommissionController {
                         row.category, 
                         type,
                         status as string,
-                        activityCount
+                        activityCount,
+                        hasSetup  
                     );
 
-                    const commission = calculatedCommission;
+                const commission = calculatedCommission;
+                
+                const safeType = type as keyof typeof detail;
+                const serviceName = this.commissionHelper.getServiceName(row.service_id);
+
+                // Monthly Totals
+                stats.count++;
+                stats.commission += commission;
+                stats.mrc += mrc;
+                stats.dpp += dpp;
+
+                // Detail by Type
+                if (detail[safeType]) {
+                    detail[safeType].count++;
+                    detail[safeType].commission += commission;
+                    detail[safeType].mrc += mrc;
+                    detail[safeType].dpp += dpp;
+                }
+
+                // Service Breakdown
+                if (serviceMap[serviceName]) {
+                    serviceMap[serviceName].count++;
+                    serviceMap[serviceName].commission += commission;
+                    serviceMap[serviceName].mrc += mrc;
+                    serviceMap[serviceName].dpp += dpp;
                     
-                    const safeType = type as keyof typeof detail;
-                    const serviceName = this.commissionHelper.getServiceName(row.service_id);
-
-                    // Monthly Totals
-                    stats.count++;
-                    stats.commission += commission;
-                    stats.mrc += mrc;
-                    stats.dpp += dpp;
-
-                    // Detail by Type
-                    if (detail[safeType]) {
-                        detail[safeType].count++;
-                        detail[safeType].commission += commission;
-                        detail[safeType].mrc += mrc;
-                        detail[safeType].dpp += dpp;
+                    if (serviceMap[serviceName].detail[safeType]) {
+                        serviceMap[serviceName].detail[safeType].count++;
+                        serviceMap[serviceName].detail[safeType].commission += commission;
+                        serviceMap[serviceName].detail[safeType].mrc += mrc;
+                        serviceMap[serviceName].detail[safeType].dpp += dpp;
                     }
-
-                    // Service Breakdown
-                    if (serviceMap[serviceName]) {
-                        serviceMap[serviceName].count++;
-                        serviceMap[serviceName].commission += commission;
-                        serviceMap[serviceName].mrc += mrc;
-                        serviceMap[serviceName].dpp += dpp;
-                        
-                        if (serviceMap[serviceName].detail[safeType]) {
-                            serviceMap[serviceName].detail[safeType].count++;
-                            serviceMap[serviceName].detail[safeType].commission += commission;
-                            serviceMap[serviceName].detail[safeType].mrc += mrc;
-                            serviceMap[serviceName].detail[safeType].dpp += dpp;
-                        }
-                    }
-                });
+                }
+            });
 
                 let achievementStatus = "N/A";
                 let motivation = "N/A";
@@ -329,6 +336,7 @@ export class CommissionController {
             // 1. First pass: Calculate Activity Count for Achievement
             let nusaSelectaCount = 0;
             let totalNewCount = 0;
+            const customerSetupMap: Record<string, boolean> = {};
 
             rows.forEach((row: any) => {
                  if (row.is_deleted) return;
@@ -345,6 +353,10 @@ export class CommissionController {
                      if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
                         nusaSelectaCount++;
                      }
+                 }
+
+                 if (type === 'setup') {
+                     customerSetupMap[row.customer_id] = true;
                  }
             });
 
@@ -367,6 +379,7 @@ export class CommissionController {
                     if (type === 'prorata') type = 'prorate';
 
                     const months = Number(row.month || 1);
+                    const hasSetup = customerSetupMap[row.customer_id] || false;
 
                     const { commission: calculatedCommission } = CommissionHelper.calculateCommission(
                         row, 
@@ -376,7 +389,8 @@ export class CommissionController {
                         row.category, 
                         type,
                         status as string,
-                        activityCount
+                        activityCount,
+                        hasSetup
                     );
 
                     const commission = calculatedCommission;

@@ -84,7 +84,8 @@ export class CommissionHelper {
         category: string,
         type: string,
         status: string = '',
-        activityCount: number = 0
+        activityCount: number = 0,
+        hasSetup: boolean = false
     ): { commission: number, commissionPercentage: number } {
         const commissionRates: Record<string, { [key: number]: number }> = {
             'BFLITE': { 1: 28.38, 6: 6.55, 12: 5.09 },
@@ -130,7 +131,11 @@ export class CommissionHelper {
         } else if (category === 'setup') {
             commissionPercentage = 5;
         } else if (category === 'alat') {
-            commissionPercentage = 2;
+            if (hasSetup) {
+                commissionPercentage = 2;
+            } else {
+                commissionPercentage = 1;
+            }
         }
 
         const commission = dpp * (commissionPercentage / 100);

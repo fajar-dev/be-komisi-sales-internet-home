@@ -37,9 +37,10 @@ export class SnapshotController {
             const status = await this.employeeService.getStatusByPeriod(employeeId, startDate, endDate);
             const result = await this.snapshotService.getSnapshotBySales(employeeId, startDate, endDate);
 
-            // Calculate Activity Count
+            // Calculate Activity Count and identify setup categories per customer
             let nusaSelectaCount = 0;
             let totalNewCount = 0;
+            const customerSetupMap: Record<string, boolean> = {};
 
             result.forEach((row: any) => {
                  if (row.is_deleted) return;
@@ -56,6 +57,10 @@ export class SnapshotController {
                      if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
                         nusaSelectaCount++;
                      }
+                 }
+
+                 if (type === 'setup') {
+                     customerSetupMap[row.customer_id] = true;
                  }
             });
 
@@ -84,6 +89,7 @@ export class SnapshotController {
                 const dpp = Number(row.dpp ?? 0);
                 const mrc = Number(row.mrc ?? 0);
                 const months = Number(row.month || 1);
+                const hasSetup = customerSetupMap[row.customer_id] || false;
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
@@ -99,7 +105,8 @@ export class SnapshotController {
                     row.category,
                     type,
                     status as string,
-                    activityCount
+                    activityCount,
+                    hasSetup
                 );
 
                 const item = {
