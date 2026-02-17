@@ -553,12 +553,30 @@ export class CommissionController {
                     monthlyCommissionSubscription: 0
                 };
 
+                const monthSales: any = {
+                    Permanent: 0,
+                    Probation: 0,
+                    total: 0,
+                    activity: 0,
+                    percentage: "0%",
+                    status: "Tidak Capai Target"
+                };
+
                 for (const member of team) {
                      const rows = await this.snapshotService.getSnapshotBySales(member.employee_id, startDate, endDate);
                      const status = await this.employeeService.getStatusByPeriod(member.employee_id, startDate, endDate);
 
                      const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status);
                      
+                     const type = statsResult.status || "Permanent";
+                     if (type === 'Permanent') {
+                         monthSales.Permanent++;
+                     } else {
+                         monthSales.Probation++;
+                     }
+                     monthSales.total++;
+                     monthSales.activity += statsResult.activityCount;
+
                      const newDetail = statsResult.detail.new;
                      const recurringDetail = statsResult.detail.recurring;
                      
@@ -577,6 +595,7 @@ export class CommissionController {
                      const employeeData = {
                          name: member.name,
                          employeeId: member.employee_id,
+                         photoProfile: member.photo_profile,
                          achievement: {
                              activity: statsResult.activityCount,
                              type: statsResult.status || "Permanent",
@@ -600,7 +619,23 @@ export class CommissionController {
                      monthTotals.monthlyCommissionSubscription += recurringDetail.commission;
                 }
 
+                let percentageVal = 0;
+                if (monthSales.Permanent === 0 && monthSales.Probation === 0) {
+                     percentageVal = 0;
+                } else if (monthSales.Permanent === 0 && monthSales.Probation !== 0) {
+                     percentageVal = 100;
+                } else {
+                     const target = monthSales.Permanent * 12;
+                     percentageVal = (monthSales.activity / target) * 100;
+                }
+                
+                monthSales.percentage = percentageVal.toFixed(2) + "%";
+                monthSales.status = percentageVal >= 100 ? "Capai Target" : "Tidak Capai Target";
+
                 monthlyData[monthName] = {
+                    startDate,
+                    endDate,
+                    sales: monthSales,
                     employee: monthEmployees,
                     monthlyNewMrc: this.commissionHelper.formatCurrency(monthTotals.monthlyNewMrc),
                     monthlyNewSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyNewSubscription),
@@ -661,12 +696,30 @@ export class CommissionController {
                 monthlyCommissionSubscription: 0
             };
 
+            const monthSales: any = {
+                Permanent: 0,
+                Probation: 0,
+                total: 0,
+                activity: 0,
+                percentage: "0%",
+                status: "Tidak Capai Target"
+            };
+
             for (const member of team) {
                     const rows = await this.snapshotService.getSnapshotBySales(member.employee_id, startDate, endDate);
                     const status = await this.employeeService.getStatusByPeriod(member.employee_id, startDate, endDate);
 
                     const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status);
                     
+                    const type = statsResult.status || "Permanent";
+                    if (type === 'Permanent') {
+                        monthSales.Permanent++;
+                    } else {
+                        monthSales.Probation++;
+                    }
+                    monthSales.total++;
+                    monthSales.activity += statsResult.activityCount;
+
                     const newDetail = statsResult.detail.new;
                     const recurringDetail = statsResult.detail.recurring;
                     
@@ -685,6 +738,7 @@ export class CommissionController {
                     const employeeData = {
                         name: member.name,
                         employeeId: member.employee_id,
+                        photoProfile: member.photo_profile,
                         achievement: {
                             activity: statsResult.activityCount,
                             type: statsResult.status || "Permanent",
@@ -708,7 +762,23 @@ export class CommissionController {
                     monthTotals.monthlyCommissionSubscription += recurringDetail.commission;
             }
 
+            let percentageVal = 0;
+            if (monthSales.Permanent === 0 && monthSales.Probation === 0) {
+                 percentageVal = 0;
+            } else if (monthSales.Permanent === 0 && monthSales.Probation !== 0) {
+                 percentageVal = 100;
+            } else {
+                 const target = monthSales.Permanent * 12;
+                 percentageVal = (monthSales.activity / target) * 100;
+            }
+            
+            monthSales.percentage = percentageVal.toFixed(2) + "%";
+            monthSales.status = percentageVal >= 100 ? "Capai Target" : "Tidak Capai Target";
+
             const response = {
+                startDate,
+                endDate,
+                sales: monthSales,
                 employee: monthEmployees,
                 monthlyNewMrc: this.commissionHelper.formatCurrency(monthTotals.monthlyNewMrc),
                 monthlyNewSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyNewSubscription),
