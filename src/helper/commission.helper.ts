@@ -87,16 +87,7 @@ export class CommissionHelper {
         activityCount: number = 0,
         hasSetup: boolean = false
     ): { commission: number, commissionPercentage: number } {
-        const commissionRates: Record<string, { [key: number]: number }> = {
-            'BFLITE': { 1: 28.38, 6: 6.55, 12: 5.09 },
-            'NFSP030': { 1: 20.00, 6: 5.56, 12: 4.44 },
-            'NFSP100': { 1: 20.00, 6: 5.56, 12: 4.44 },
-            'NFSP200': { 1: 26.00, 6: 6.00, 12: 4.67 },
-            'HOME100': { 1: 28.57, 6: 5.95, 12: 4.76 },
-            'HOMEADV200': { 1: 27.78, 6: 5.56, 12: 4.63 },
-            'HOMEADV': { 1: 27.78, 6: 5.56, 12: 4.63 },
-            'HOMEPREM300': { 1: 31.25, 6: 6.25, 12: 5.21 },
-        };
+        const commissionRates = this.getCommissionRates();
 
         let commissionPercentage = 0;
 
@@ -104,7 +95,7 @@ export class CommissionHelper {
             if (type === 'prorate') {
                 commissionPercentage = 10;
             } else if (type === 'upgrade') {
-                 const rates = commissionRates[serviceId];
+                 const rates = commissionRates[serviceId as keyof typeof commissionRates];
                 if (rates) {
                     if (['NFSP030', 'NFSP100', 'NFSP200'].includes(serviceId)) {
                         commissionPercentage = months >= 12 ? rates[12] : (months >= 6 ? rates[6] : rates[1]);
@@ -119,7 +110,7 @@ export class CommissionHelper {
                     commissionPercentage = 1.5;
                 }
             } else if (type === 'new') {
-                const rates = commissionRates[serviceId];
+                const rates = commissionRates[serviceId as keyof typeof commissionRates];
                 if (rates) {
                     if (['NFSP030', 'NFSP100', 'NFSP200'].includes(serviceId)) {
                         commissionPercentage = months >= 12 ? rates[12] : (months >= 6 ? rates[6] : rates[1]);
@@ -242,29 +233,7 @@ export class CommissionHelper {
             }
         });
 
-        let achievementStatus = "N/A";
-
-        if (status === 'Permanent') {
-            if (activityCount >= 15) {
-                achievementStatus = "Capai target Bonus";
-            } else if (activityCount >= 12) {
-                achievementStatus = "Capai target";
-            } else if (activityCount < 3) {
-                achievementStatus = "SP1";
-            } else {
-                achievementStatus = "Tidak Capai target";
-            }
-        } else if (status === 'Probation') {
-            if (activityCount >= 8) {
-                achievementStatus = "Excelent";
-            } else if (activityCount >= 5) {
-                achievementStatus = "Very Good";
-            } else if (activityCount >= 3) {
-                achievementStatus = "Average";
-            } else {
-                achievementStatus = "Below Average";
-            }
-        }
+        const { achievementStatus, motivation } = this.calculateAchievement(status as string, activityCount);
 
         return {
             stats,
@@ -273,6 +242,98 @@ export class CommissionHelper {
             activityCount,
             status,
             achievementStatus
+        };
+    }
+
+    static getCommissionRates() {
+        return {
+            'BFLITE': { 1: 28.38, 6: 6.55, 12: 5.09 },
+            'NFSP030': { 1: 20.00, 6: 5.56, 12: 4.44 },
+            'NFSP100': { 1: 20.00, 6: 5.56, 12: 4.44 },
+            'NFSP200': { 1: 26.00, 6: 6.00, 12: 4.67 },
+            'HOME100': { 1: 28.57, 6: 5.95, 12: 4.76 },
+            'HOMEADV200': { 1: 27.78, 6: 5.56, 12: 4.63 },
+            'HOMEADV': { 1: 27.78, 6: 5.56, 12: 4.63 },
+            'HOMEPREM300': { 1: 31.25, 6: 6.25, 12: 5.21 },
+        };
+    }
+
+    static calculateAchievement(status: string, activityCount: number) {
+        let achievementStatus = "N/A";
+        let motivation = "N/A";
+
+        if (status === 'Permanent') {
+            if (activityCount >= 15) {
+                achievementStatus = "Capai target Bonus";
+                motivation = "Congratulations on your outstanding achievement!";
+            } else if (activityCount >= 12) {
+                achievementStatus = "Capai target";
+                motivation = "Bravo! Keep up the great work!";
+            } else if (activityCount < 3) {
+                achievementStatus = "SP1";
+                motivation = "Keep fighting and don't give up!";
+            } else {
+                achievementStatus = "Tidak Capai target";
+                motivation = "Just a little more fights, go on!";
+            }
+        } else if (status === 'Probation' || status === 'Contract') {
+            if (activityCount >= 8) {
+                achievementStatus = "Excelent";
+                motivation = "Congratulations on your outstanding achievement!";
+            } else if (activityCount >= 5) {
+                achievementStatus = "Very Good";
+                motivation = "Bravo! Keep up the great work!";
+            } else if (activityCount >= 3) {
+                achievementStatus = "Average";
+                motivation = "You’re much better than what you think!";
+            } else {
+                achievementStatus = "Below Average";
+                motivation = "Keep pushing!";
+            }
+        }
+        return { achievementStatus, motivation };
+    }
+
+    static calculateBonus(activityCount: number) {
+        let bonus = 0;
+        if (activityCount >= 15) {
+            if (activityCount > 20) {
+                bonus = 1500000 + ((activityCount - 20) * 150000);
+            } else if (activityCount === 20) {
+                bonus = 1500000;
+            } else if (activityCount >= 17) {
+                bonus = 1000000;
+            } else if (activityCount >= 15) {
+                bonus = 500000;
+            }
+        }
+        return bonus;
+    }
+
+    static getTeamTargetThreshold(totalSales: number) {
+        const targetThresholds: Record<number, number> = {
+            1: 120, 2: 115, 3: 110, 4: 105, 5: 100,
+            6: 95, 7: 92, 8: 90, 9: 88, 10: 85
+        };
+        return targetThresholds[totalSales] || 85;
+    }
+
+    static calculateManagerCommission(percentageVal: number, monthlyNewCommission: number, monthlyRecurringSubscription: number, status: string) {
+        let newCommissionPercentage = 0;
+        if (percentageVal >= 150) newCommissionPercentage = 60;
+        else if (percentageVal >= 125) newCommissionPercentage = 50;
+        else if (percentageVal >= 100) newCommissionPercentage = 40;
+        else if (percentageVal >= 50) newCommissionPercentage = 25;
+        
+        const newCommission = monthlyNewCommission * (newCommissionPercentage / 100);
+        
+        const recurringRate = status === 'Capai Target' ? 0.90 : 0.50;
+        const recurringCommission = monthlyRecurringSubscription * (recurringRate / 100);
+        
+        return {
+            newCommission,
+            recurringCommission,
+            totalCommission: newCommission + recurringCommission
         };
     }
 }

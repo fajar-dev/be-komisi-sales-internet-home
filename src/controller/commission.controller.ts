@@ -123,51 +123,8 @@ export class CommissionController {
                 }
             });
 
-                let achievementStatus = "N/A";
-                let motivation = "N/A";
-
-                if (status === 'Permanent') {
-                    if (activityCount >= 15) {
-                        achievementStatus = "Capai target Bonus";
-                        motivation = "Congratulations on your outstanding achievement!";
-                    } else if (activityCount >= 12) {
-                        achievementStatus = "Capai target";
-                        motivation = "Bravo! Keep up the great work!";
-                    } else if (activityCount < 3) {
-                        achievementStatus = "SP1";
-                        motivation = "Keep fighting and don't give up!";
-                    } else {
-                        achievementStatus = "Tidak Capai target";
-                        motivation = "Just a little more fights, go on!";
-                    }
-                } else if (status === 'Probation') {
-                    if (activityCount >= 8) {
-                        achievementStatus = "Excelent";
-                        motivation = "Congratulations on your outstanding achievement!";
-                    } else if (activityCount >= 5) {
-                        achievementStatus = "Very Good";
-                        motivation = "Bravo! Keep up the great work!";
-                    } else if (activityCount >= 3) {
-                        achievementStatus = "Average";
-                        motivation = "You’re much better than what you think!";
-                    } else {
-                        achievementStatus = "Below Average";
-                        motivation = "Keep pushing!";
-                    }
-                }
-                
-                let bonus = 0;
-                if (activityCount >= 15) {
-                    if (activityCount > 20) {
-                        bonus = 1500000 + ((activityCount - 20) * 150000);
-                    } else if (activityCount === 20) {
-                        bonus = 1500000;
-                    } else if (activityCount >= 17) {
-                        bonus = 1000000;
-                    } else if (activityCount >= 15) {
-                        bonus = 500000;
-                    }
-                }
+                const { achievementStatus, motivation } = this.commissionHelper.calculateAchievement(status as string, activityCount);
+                const bonus = this.commissionHelper.calculateBonus(activityCount);
                 const totalCommission = stats.commission + bonus;
 
                 const service = Object.values(serviceMap).map((s: any) => ({
@@ -435,51 +392,8 @@ export class CommissionController {
                 }
             }));
 
-            let achievementStatus = "N/A";
-            let motivation = "N/A";
-            let bonus = 0;
-
-            if (activityCount >= 15) {
-                if (activityCount > 20) {
-                     bonus = 1500000 + ((activityCount - 20) * 150000);
-                } else if (activityCount === 20) {
-                    bonus = 1500000;
-                } else if (activityCount >= 17) {
-                    bonus = 1000000;
-                } else if (activityCount >= 15) {
-                    bonus = 500000;
-                }
-            }
-
-            if (status === 'Permanent') {
-                if (activityCount >= 15) {
-                    achievementStatus = "Capai target Bonus";
-                    motivation = "Congratulations on your outstanding achievement!";
-                } else if (activityCount >= 12) {
-                    achievementStatus = "Capai target";
-                    motivation = "Bravo! Keep up the great work!";
-                } else if (activityCount < 3) {
-                    achievementStatus = "SP1";
-                    motivation = "Keep fighting and don't give up!";
-                } else {
-                    achievementStatus = "Tidak Capai target";
-                    motivation = "Just a little more fights, go on!";
-                }
-            } else if (status === 'Probation' || status === 'Contract') {
-                if (activityCount >= 8) {
-                    achievementStatus = "Excelent";
-                    motivation = "Congratulations on your outstanding achievement!";
-                } else if (activityCount >= 5) {
-                    achievementStatus = "Very Good";
-                    motivation = "Bravo! Keep up the great work!";
-                } else if (activityCount >= 3) {
-                    achievementStatus = "Average";
-                    motivation = "You’re much better than what you think!";
-                } else {
-                    achievementStatus = "Below Average";
-                    motivation = "Keep pushing!";
-                }
-            }
+            const { achievementStatus, motivation } = this.commissionHelper.calculateAchievement(status as string, activityCount);
+            const bonus = this.commissionHelper.calculateBonus(activityCount);
             
             const totalCommission = stats.commission + bonus;
             
@@ -537,7 +451,7 @@ export class CommissionController {
                 yearlyNewSubscription: 0,
                 yearlyNewCommission: 0,
                 yearlyRecurringSubscription: 0,
-                yearlyCommissionSubscription: 0
+                yearlyRecurringCommission: 0
             };
 
             for (let i = 0; i < 12; i++) {
@@ -550,7 +464,7 @@ export class CommissionController {
                     monthlyNewSubscription: 0,
                     monthlyNewCommission: 0,
                     monthlyRecurringSubscription: 0,
-                    monthlyCommissionSubscription: 0
+                    monthlyRecurringCommission: 0
                 };
 
                 const monthSales: any = {
@@ -606,7 +520,7 @@ export class CommissionController {
                          newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
                          newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
                          recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
-                         commissionSubscription: this.commissionHelper.formatCurrency(recurringDetail.commission)
+                         recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission)
                      };
 
                      monthEmployees.push(employeeData);
@@ -616,7 +530,7 @@ export class CommissionController {
                      monthTotals.monthlyNewSubscription += newDetail.dpp;
                      monthTotals.monthlyNewCommission += newDetail.commission;
                      monthTotals.monthlyRecurringSubscription += recurringDetail.dpp;
-                     monthTotals.monthlyCommissionSubscription += recurringDetail.commission;
+                     monthTotals.monthlyRecurringCommission += recurringDetail.commission;
                 }
 
                 let percentageVal = 0;
@@ -629,19 +543,33 @@ export class CommissionController {
                      percentageVal = (monthSales.activity / target) * 100;
                 }
                 
+                const targetPercentage = this.commissionHelper.getTeamTargetThreshold(monthSales.total);
+
                 monthSales.percentage = percentageVal.toFixed(2) + "%";
-                monthSales.status = percentageVal >= 100 ? "Capai Target" : "Tidak Capai Target";
+                monthSales.status = percentageVal >= targetPercentage ? "Capai Target" : "Tidak Capai Target";
+
+                const managerAchievement = this.commissionHelper.calculateManagerCommission(
+                    percentageVal,
+                    monthTotals.monthlyNewCommission,
+                    monthTotals.monthlyRecurringSubscription,
+                    monthSales.status
+                );
 
                 monthlyData[monthName] = {
                     startDate,
                     endDate,
                     sales: monthSales,
-                    employee: monthEmployees,
                     monthlyNewMrc: this.commissionHelper.formatCurrency(monthTotals.monthlyNewMrc),
                     monthlyNewSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyNewSubscription),
                     monthlyNewCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyNewCommission),
                     monthlyRecurringSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringSubscription),
-                    monthlyCommissionSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyCommissionSubscription)
+                    monthlyRecurringCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringCommission),
+                    achievement: {
+                        newCommission: this.commissionHelper.formatCurrency(managerAchievement.newCommission),
+                        recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
+                        totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
+                    },
+                    employee: monthEmployees
                 };
 
                 // Accumulate Yearly
@@ -649,7 +577,7 @@ export class CommissionController {
                 yearlyTotals.yearlyNewSubscription += monthTotals.monthlyNewSubscription;
                 yearlyTotals.yearlyNewCommission += monthTotals.monthlyNewCommission;
                 yearlyTotals.yearlyRecurringSubscription += monthTotals.monthlyRecurringSubscription;
-                yearlyTotals.yearlyCommissionSubscription += monthTotals.monthlyCommissionSubscription;
+                yearlyTotals.yearlyRecurringCommission += monthTotals.monthlyRecurringCommission;
             }
 
             const response = {
@@ -657,7 +585,7 @@ export class CommissionController {
                 yearlyNewSubscription: this.commissionHelper.formatCurrency(yearlyTotals.yearlyNewSubscription),
                 yearlyNewCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyNewCommission),
                 yearlyRecurringSubscription: this.commissionHelper.formatCurrency(yearlyTotals.yearlyRecurringSubscription),
-                yearlyCommissionSubscription: this.commissionHelper.formatCurrency(yearlyTotals.yearlyCommissionSubscription),
+                yearlyRecurringCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyRecurringCommission),
                 monthly: monthlyData
             };
             
@@ -693,7 +621,7 @@ export class CommissionController {
                 monthlyNewSubscription: 0,
                 monthlyNewCommission: 0,
                 monthlyRecurringSubscription: 0,
-                monthlyCommissionSubscription: 0
+                monthlyRecurringCommission: 0
             };
 
             const monthSales: any = {
@@ -749,7 +677,7 @@ export class CommissionController {
                         newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
                         newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
                         recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
-                        commissionSubscription: this.commissionHelper.formatCurrency(recurringDetail.commission)
+                        recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission)
                     };
 
                     monthEmployees.push(employeeData);
@@ -759,7 +687,7 @@ export class CommissionController {
                     monthTotals.monthlyNewSubscription += newDetail.dpp;
                     monthTotals.monthlyNewCommission += newDetail.commission;
                     monthTotals.monthlyRecurringSubscription += recurringDetail.dpp;
-                    monthTotals.monthlyCommissionSubscription += recurringDetail.commission;
+                    monthTotals.monthlyRecurringCommission += recurringDetail.commission;
             }
 
             let percentageVal = 0;
@@ -772,19 +700,33 @@ export class CommissionController {
                  percentageVal = (monthSales.activity / target) * 100;
             }
             
+            const targetPercentage = this.commissionHelper.getTeamTargetThreshold(monthSales.total);
+
             monthSales.percentage = percentageVal.toFixed(2) + "%";
-            monthSales.status = percentageVal >= 100 ? "Capai Target" : "Tidak Capai Target";
+            monthSales.status = percentageVal >= targetPercentage ? "Capai Target" : "Tidak Capai Target";
+
+            const managerAchievement = this.commissionHelper.calculateManagerCommission(
+                percentageVal,
+                monthTotals.monthlyNewCommission,
+                monthTotals.monthlyRecurringSubscription,
+                monthSales.status
+            );
 
             const response = {
                 startDate,
                 endDate,
                 sales: monthSales,
-                employee: monthEmployees,
                 monthlyNewMrc: this.commissionHelper.formatCurrency(monthTotals.monthlyNewMrc),
                 monthlyNewSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyNewSubscription),
                 monthlyNewCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyNewCommission),
                 monthlyRecurringSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringSubscription),
-                monthlyCommissionSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyCommissionSubscription)
+                monthlyRecurringCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringCommission),
+                achievement: {
+                    newCommission: this.commissionHelper.formatCurrency(managerAchievement.newCommission),
+                    recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
+                    totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
+                },
+                employee: monthEmployees
             };
             
             return c.json(this.apiResponse.success("Manager commission period data retrieved successfully", response));
