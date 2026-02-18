@@ -92,9 +92,12 @@ export class CommissionHelper {
         let commissionPercentage = 0;
 
         if (category === 'home') {
+            // Rule: Prorate Commission -> Always 10%
             if (type === 'prorate') {
                 commissionPercentage = 10;
-            } else if (type === 'upgrade') {
+            } 
+            // Rule: Upgrade Commission -> Based on defined rates for service & contract duration
+            else if (type === 'upgrade') {
                  const rates = commissionRates[serviceId as keyof typeof commissionRates];
                 if (rates) {
                     if (['NFSP030', 'NFSP100', 'NFSP200'].includes(serviceId)) {
@@ -103,13 +106,17 @@ export class CommissionHelper {
                         commissionPercentage = months >= 12 ? rates[12] : (months > 1 ? rates[6] : rates[1]);
                     }
                 }
-            } else if (type === 'recurring') {
+            } 
+            // Rule: Recurring Commission -> 0.5% if Permanent & Low Activity (<12), otherwise 1.5%
+            else if (type === 'recurring') {
                 if (status === 'Permanent' && activityCount < 12) {
                     commissionPercentage = 0.5;
                 } else {
                     commissionPercentage = 1.5;
                 }
-            } else if (type === 'new') {
+            } 
+            // Rule: New Installation Commission -> Based on defined rates
+            else if (type === 'new') {
                 const rates = commissionRates[serviceId as keyof typeof commissionRates];
                 if (rates) {
                     if (['NFSP030', 'NFSP100', 'NFSP200'].includes(serviceId)) {
@@ -119,9 +126,13 @@ export class CommissionHelper {
                     }
                 }
             }
-        } else if (category === 'setup') {
+        } 
+        // Rule: Setup Commission -> Always 5%
+        else if (category === 'setup') {
             commissionPercentage = 5;
-        } else if (category === 'alat') {
+        } 
+        // Rule: Alat (Device) Commission -> 2% if bundled with setup, 1% if standalone
+        else if (category === 'alat') {
             if (hasSetup) {
                 commissionPercentage = 2;
             } else {
@@ -263,6 +274,7 @@ export class CommissionHelper {
         let motivation = "N/A";
 
         if (status === 'Permanent') {
+            // Rule: Permanent Employee Achievement Levels
             if (activityCount >= 15) {
                 achievementStatus = "Capai target Bonus";
                 motivation = "Congratulations on your outstanding achievement!";
@@ -277,6 +289,7 @@ export class CommissionHelper {
                 motivation = "Just a little more fights, go on!";
             }
         } else if (status === 'Probation' || status === 'Contract') {
+            // Rule: Probation/Contract Employee Achievement Levels
             if (activityCount >= 8) {
                 achievementStatus = "Excelent";
                 motivation = "Congratulations on your outstanding achievement!";
@@ -296,6 +309,7 @@ export class CommissionHelper {
 
     static calculateBonus(activityCount: number) {
         let bonus = 0;
+        // Rule: Bonus Calculation based on Activity Count
         if (activityCount >= 15) {
             if (activityCount > 20) {
                 bonus = 1500000 + ((activityCount - 20) * 150000);
@@ -310,7 +324,33 @@ export class CommissionHelper {
         return bonus;
     }
 
+    static calculateManagerMonthlyPerformance(monthSales: { Permanent: number, Probation: number, total: number, activity: number }) {
+        let percentageVal = 0;
+        
+        // Rule: Manager Performance (%) Calculation
+        if (monthSales.Permanent === 0 && monthSales.Probation === 0) {
+             percentageVal = 0;
+        } else if (monthSales.Permanent === 0 && monthSales.Probation !== 0) {
+             percentageVal = 100;
+        } else {
+             // Target = Permanent Staff * 12
+             const target = monthSales.Permanent * 12;
+             percentageVal = (monthSales.activity / target) * 100;
+        }
+        
+        const targetPercentage = this.getTeamTargetThreshold(monthSales.total);
+        // Rule: Manager Status based on Target Threshold
+        const status = percentageVal >= targetPercentage ? "Capai Target" : "Tidak Capai Target";
+
+        return {
+            percentageVal,
+            percentage: percentageVal.toFixed(2) + "%",
+            status
+        };
+    }
+
     static getTeamTargetThreshold(totalSales: number) {
+        // Rule: Team Target Thresholds based on Total Sales Count
         const targetThresholds: Record<number, number> = {
             1: 120, 2: 115, 3: 110, 4: 105, 5: 100,
             6: 95, 7: 92, 8: 90, 9: 88, 10: 85
@@ -320,6 +360,12 @@ export class CommissionHelper {
 
     static calculateManagerCommission(percentageVal: number, monthlyNewCommission: number, monthlyRecurringSubscription: number, status: string) {
         let newCommissionPercentage = 0;
+        
+        // Rule: Manager New Commission Percentage based on Performance %
+        // 150% -> 60%
+        // 125% -> 50%
+        // 100% -> 40%
+        // 50%  -> 25%
         if (percentageVal >= 150) newCommissionPercentage = 60;
         else if (percentageVal >= 125) newCommissionPercentage = 50;
         else if (percentageVal >= 100) newCommissionPercentage = 40;
@@ -327,6 +373,9 @@ export class CommissionHelper {
         
         const newCommission = monthlyNewCommission * (newCommissionPercentage / 100);
         
+        // Rule: Manager Recurring Commission Rate
+        // Capai Target -> 0.90%
+        // Tidak Capai Target -> 0.50%
         const recurringRate = status === 'Capai Target' ? 0.90 : 0.50;
         const recurringCommission = monthlyRecurringSubscription * (recurringRate / 100);
         

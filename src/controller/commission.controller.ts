@@ -495,16 +495,16 @@ export class CommissionController {
                      const recurringDetail = statsResult.detail.recurring;
                      
                      // New Service breakdown
+                     // New Service breakdown
                      const newServices = Object.values(statsResult.serviceMap).map((s: any) => {
                          const n = s.detail.new;
-                         if (n.count === 0) return null;
                          return {
                              name: s.name,
                              count: n.count,
                              mrc: this.commissionHelper.formatCurrency(n.mrc),
                              subscription: this.commissionHelper.formatCurrency(n.dpp)
                          };
-                     }).filter((s: any) => s !== null);
+                     });
 
                      const employeeData = {
                          name: member.name,
@@ -533,20 +533,10 @@ export class CommissionController {
                      monthTotals.monthlyRecurringCommission += recurringDetail.commission;
                 }
 
-                let percentageVal = 0;
-                if (monthSales.Permanent === 0 && monthSales.Probation === 0) {
-                     percentageVal = 0;
-                } else if (monthSales.Permanent === 0 && monthSales.Probation !== 0) {
-                     percentageVal = 100;
-                } else {
-                     const target = monthSales.Permanent * 12;
-                     percentageVal = (monthSales.activity / target) * 100;
-                }
-                
-                const targetPercentage = this.commissionHelper.getTeamTargetThreshold(monthSales.total);
-
-                monthSales.percentage = percentageVal.toFixed(2) + "%";
-                monthSales.status = percentageVal >= targetPercentage ? "Capai Target" : "Tidak Capai Target";
+                const performance = this.commissionHelper.calculateManagerMonthlyPerformance(monthSales);
+                monthSales.percentage = performance.percentage;
+                monthSales.status = performance.status;
+                const percentageVal = performance.percentageVal;
 
                 const managerAchievement = this.commissionHelper.calculateManagerCommission(
                     percentageVal,
@@ -652,16 +642,16 @@ export class CommissionController {
                     const recurringDetail = statsResult.detail.recurring;
                     
                     // New Service breakdown
+                    // New Service breakdown
                     const newServices = Object.values(statsResult.serviceMap).map((s: any) => {
                         const n = s.detail.new;
-                        if (n.count === 0) return null;
                         return {
                             name: s.name,
                             count: n.count,
                             mrc: this.commissionHelper.formatCurrency(n.mrc),
                             subscription: this.commissionHelper.formatCurrency(n.dpp)
                         };
-                    }).filter((s: any) => s !== null);
+                    });
 
                     const employeeData = {
                         name: member.name,
@@ -690,20 +680,10 @@ export class CommissionController {
                     monthTotals.monthlyRecurringCommission += recurringDetail.commission;
             }
 
-            let percentageVal = 0;
-            if (monthSales.Permanent === 0 && monthSales.Probation === 0) {
-                 percentageVal = 0;
-            } else if (monthSales.Permanent === 0 && monthSales.Probation !== 0) {
-                 percentageVal = 100;
-            } else {
-                 const target = monthSales.Permanent * 12;
-                 percentageVal = (monthSales.activity / target) * 100;
-            }
-            
-            const targetPercentage = this.commissionHelper.getTeamTargetThreshold(monthSales.total);
-
-            monthSales.percentage = percentageVal.toFixed(2) + "%";
-            monthSales.status = percentageVal >= targetPercentage ? "Capai Target" : "Tidak Capai Target";
+            const performance = this.commissionHelper.calculateManagerMonthlyPerformance(monthSales);
+            monthSales.percentage = performance.percentage;
+            monthSales.status = performance.status;
+            const percentageVal = performance.percentageVal;
 
             const managerAchievement = this.commissionHelper.calculateManagerCommission(
                 percentageVal,
