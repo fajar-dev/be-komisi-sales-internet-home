@@ -94,7 +94,7 @@ export class EmployeeService {
         return rows.length > 0 ? rows[0] : null;
     }
 
-    static async getHierarchy(employeeId: string, search?: string) {
+    static async getHierarchy(employeeId: string, search?: string, isSelf: boolean = true) {
         const employee: any = await this.getEmployeeByEmployeeId(employeeId);
 
         if (employee && employee.manager_id == null) {
@@ -110,22 +110,43 @@ export class EmployeeService {
             return Array.isArray(rows) ? rows : [];
         }
 
-        let query = `
-            WITH RECURSIVE employee_hierarchy AS (
-                SELECT *, 0 as depth
-                FROM employee
-                WHERE employee_id = ?
-                
-                UNION ALL
-                
-                SELECT e.*, eh.depth + 1
-                FROM employee e
-                INNER JOIN employee_hierarchy eh ON e.manager_id = eh.id
-            )
-            SELECT * FROM employee_hierarchy WHERE has_dashboard = true
-        `;
-        
-        const params: any[] = [employeeId];
+        let query = '';
+        let params: any[] = [];
+
+        if (isSelf) {
+            query = `
+                WITH RECURSIVE employee_hierarchy AS (
+                    SELECT *, 0 as depth
+                    FROM employee
+                    WHERE employee_id = ?
+                    
+                    UNION ALL
+                    
+                    SELECT e.*, eh.depth + 1
+                    FROM employee e
+                    INNER JOIN employee_hierarchy eh ON e.manager_id = eh.id
+                )
+                SELECT * FROM employee_hierarchy WHERE has_dashboard = true
+            `;
+            params = [employeeId];
+        } else {
+            const employeeData: any = await this.getEmployeeByEmployeeId(employeeId);
+            query = `
+                WITH RECURSIVE employee_hierarchy AS (
+                    SELECT *, 0 as depth
+                    FROM employee
+                    WHERE manager_id = ?
+                    
+                    UNION ALL
+                    
+                    SELECT e.*, eh.depth + 1
+                    FROM employee e
+                    INNER JOIN employee_hierarchy eh ON e.manager_id = eh.id
+                )
+                SELECT * FROM employee_hierarchy WHERE has_dashboard = true
+            `;
+            params = [employeeData.id];
+        }
 
         if (search) {
             query += ` AND (name LIKE ? OR employee_id LIKE ?)`;

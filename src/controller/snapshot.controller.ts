@@ -211,7 +211,7 @@ export class SnapshotController {
         }
     }
 
-        async salesSnapshotByAi(c: Context) {
+    async salesSnapshotByAi(c: Context) {
         try {
             const ai = c.req.param('ai');
             const row: any = await this.snapshotService.getSnapshotByAi(ai);

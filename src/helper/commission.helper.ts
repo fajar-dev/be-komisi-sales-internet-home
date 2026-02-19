@@ -358,7 +358,7 @@ export class CommissionHelper {
         return targetThresholds[totalSales] || 85;
     }
 
-    static calculateManagerCommission(percentageVal: number, monthlyNewCommission: number, monthlyRecurringSubscription: number, status: string) {
+    static calculateManagerCommission(percentageVal: number, monthlyNewSubscription: number, monthlyRecurringSubscription: number, status: string) {
         let newCommissionPercentage = 0;
         
         // Rule: Manager New Commission Percentage based on Performance %
@@ -371,7 +371,7 @@ export class CommissionHelper {
         else if (percentageVal >= 100) newCommissionPercentage = 40;
         else if (percentageVal >= 50) newCommissionPercentage = 25;
         
-        const newCommission = monthlyNewCommission * (newCommissionPercentage / 100);
+        const newCommission = monthlyNewSubscription * (newCommissionPercentage / 100);
         
         // Rule: Manager Recurring Commission Rate
         // Capai Target -> 0.90%
@@ -382,7 +382,11 @@ export class CommissionHelper {
         return {
             newCommission,
             recurringCommission,
-            totalCommission: newCommission + recurringCommission
+            totalCommission: newCommission + recurringCommission,
+            rates: {
+                new: newCommissionPercentage,
+                recurring: recurringRate
+            }
         };
     }
 }

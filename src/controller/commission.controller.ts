@@ -437,7 +437,7 @@ export class CommissionController {
             const yearStr = c.req.query("year");
             const year = yearStr ? Number(yearStr) : new Date().getFullYear();
 
-            const team = await this.employeeService.getHierarchy(employeeId);
+            const team = await this.employeeService.getHierarchy(employeeId, "", false);
             const months = [
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
@@ -480,6 +480,8 @@ export class CommissionController {
                      const rows = await this.snapshotService.getSnapshotBySales(member.employee_id, startDate, endDate);
                      const status = await this.employeeService.getStatusByPeriod(member.employee_id, startDate, endDate);
 
+                     if (!status) continue;
+
                      const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status);
                      
                      const type = statsResult.status || "Permanent";
@@ -520,7 +522,9 @@ export class CommissionController {
                          newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
                          newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
                          recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
-                         recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission)
+                         recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
+                         _rawNewSubscription: newDetail.dpp,
+                         _rawRecurringSubscription: recurringDetail.dpp
                      };
 
                      monthEmployees.push(employeeData);
@@ -540,10 +544,18 @@ export class CommissionController {
 
                 const managerAchievement = this.commissionHelper.calculateManagerCommission(
                     percentageVal,
-                    monthTotals.monthlyNewCommission,
+                    monthTotals.monthlyNewSubscription,
                     monthTotals.monthlyRecurringSubscription,
                     monthSales.status
                 );
+
+                const finalMonthEmployees = monthEmployees.map((emp: any) => ({
+                    ...emp,
+                    managerNewCommission: this.commissionHelper.formatCurrency(emp._rawNewSubscription * (managerAchievement.rates.new / 100)),
+                    managerNewCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
+                    managerRecurringCommission: this.commissionHelper.formatCurrency(emp._rawRecurringSubscription * (managerAchievement.rates.recurring / 100)),
+                    managerRecurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring)
+                })).map(({ _rawNewSubscription, _rawRecurringSubscription, ...emp }) => emp);
 
                 monthlyData[monthName] = {
                     startDate,
@@ -559,7 +571,7 @@ export class CommissionController {
                         recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
                         totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
                     },
-                    employee: monthEmployees
+                    employee: finalMonthEmployees
                 };
 
                 // Accumulate Yearly
@@ -603,7 +615,7 @@ export class CommissionController {
             }
 
             const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
-            const team = await this.employeeService.getHierarchy(employeeId);
+            const team = await this.employeeService.getHierarchy(employeeId, "", false);
 
             const monthEmployees: any[] = [];
             const monthTotals = {
@@ -627,6 +639,8 @@ export class CommissionController {
                     const rows = await this.snapshotService.getSnapshotBySales(member.employee_id, startDate, endDate);
                     const status = await this.employeeService.getStatusByPeriod(member.employee_id, startDate, endDate);
 
+                    if (!status) continue;
+
                     const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status);
                     
                     const type = statsResult.status || "Permanent";
@@ -641,7 +655,6 @@ export class CommissionController {
                     const newDetail = statsResult.detail.new;
                     const recurringDetail = statsResult.detail.recurring;
                     
-                    // New Service breakdown
                     // New Service breakdown
                     const newServices = Object.values(statsResult.serviceMap).map((s: any) => {
                         const n = s.detail.new;
@@ -667,7 +680,9 @@ export class CommissionController {
                         newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
                         newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
                         recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
-                        recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission)
+                        recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
+                        _rawNewSubscription: newDetail.dpp,
+                        _rawRecurringSubscription: recurringDetail.dpp
                     };
 
                     monthEmployees.push(employeeData);
@@ -687,10 +702,18 @@ export class CommissionController {
 
             const managerAchievement = this.commissionHelper.calculateManagerCommission(
                 percentageVal,
-                monthTotals.monthlyNewCommission,
+                monthTotals.monthlyNewSubscription,
                 monthTotals.monthlyRecurringSubscription,
                 monthSales.status
             );
+
+            const finalMonthEmployees = monthEmployees.map((emp: any) => ({
+                ...emp,
+                managerNewCommission: this.commissionHelper.formatCurrency(emp._rawNewSubscription * (managerAchievement.rates.new / 100)),
+                managerNewCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
+                managerRecurringCommission: this.commissionHelper.formatCurrency(emp._rawRecurringSubscription * (managerAchievement.rates.recurring / 100)),
+                managerRecurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring)
+            })).map(({ _rawNewSubscription, _rawRecurringSubscription, ...emp }) => emp);
 
             const response = {
                 startDate,
@@ -706,7 +729,7 @@ export class CommissionController {
                     recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
                     totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
                 },
-                employee: monthEmployees
+                employee: finalMonthEmployees
             };
             
             return c.json(this.apiResponse.success("Manager commission period data retrieved successfully", response));
