@@ -288,4 +288,39 @@ export class IsService {
         return rows as any[];
     }
 
+    static async getChurnbyDateRange(startDate: string, endDate: string) {
+        const query = `
+            SELECT  
+                cs.CustId AS customer_id,
+                c.CustName AS customer_name,
+                cs.CustServId AS customer_service_id,
+                cs.CustAccName AS customer_service_account,
+                cs.ServiceId AS service_id,
+                s.ServiceType AS service_name,
+                cs.CustRegDate AS registation_date,
+                cs.CustUnregDate AS unregistartion_date,
+                cs.CustCloseReason AS reason,
+                cs.SalesId AS sales_id,
+                cs.ManagerSalesId AS manager_id
+            FROM CustomerServices cs 
+            LEFT JOIN Customer c ON c.CustId = cs.CustId 
+            LEFT JOIN Services s ON s.ServiceId = cs.ServiceId
+            WHERE cs.ServiceId IN ('BFLITE', 'NFSP030', 'NFSP100', 'NFSP200', 'HOME100', 'HOMEADV200', 'HOMEPREM300', 'HOMEADV')
+            AND cs.CustStatus = 'NA' 
+            AND cs.CustUnregDate BETWEEN ? AND ?
+            AND cs.CustUnregDate <= DATE_ADD(cs.CustRegDate, INTERVAL 1 YEAR)
+            AND (
+                IFNULL(c.DisplayBranchId, c.BranchId) IN ('020', '062', '025', '027', '029')
+                OR (
+                    IFNULL(c.DisplayBranchId, c.BranchId) = '028'
+                    AND cs.SalesId NOT IN ('0208801')
+                )
+            );
+        `;
+        const [rows] = await nisPool.query({
+            sql: query,
+        }, [startDate, endDate]);
+        return rows as any[];
+    }
+
 }

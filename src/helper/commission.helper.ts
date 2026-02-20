@@ -338,13 +338,20 @@ export class CommissionHelper {
              percentageVal = (monthSales.activity / target) * 100;
         }
         
-        const targetPercentage = this.getTeamTargetThreshold(monthSales.total);
-        // Rule: Manager Status based on Target Threshold
-        const status = percentageVal >= targetPercentage ? "Capai Target" : "Tidak Capai Target";
+        let status = "Tidak Capai Target";
+
+        if (monthSales.Permanent === 0) {
+            status = "Capai Target";
+        } else {
+            const targetPercentage = this.getTeamTargetThreshold(monthSales.Permanent);
+            // Rule: Manager Status based on Target Threshold
+            status = percentageVal >= targetPercentage ? "Capai Target" : "Tidak Capai Target";
+        }
 
         return {
             percentageVal,
             percentage: percentageVal.toFixed(2) + "%",
+            target: (monthSales.Permanent + monthSales.Probation) === 0 ? 0 : monthSales.Permanent * 12,
             status
         };
     }
@@ -358,7 +365,7 @@ export class CommissionHelper {
         return targetThresholds[totalSales] || 85;
     }
 
-    static calculateManagerCommission(percentageVal: number, monthlyNewSubscription: number, monthlyRecurringSubscription: number, status: string) {
+    static calculateManagerCommission(percentageVal: number, monthlyNewCommission: number, monthlyRecurringSubscription: number, status: string) {
         let newCommissionPercentage = 0;
         
         // Rule: Manager New Commission Percentage based on Performance %
@@ -371,7 +378,7 @@ export class CommissionHelper {
         else if (percentageVal >= 100) newCommissionPercentage = 40;
         else if (percentageVal >= 50) newCommissionPercentage = 25;
         
-        const newCommission = monthlyNewSubscription * (newCommissionPercentage / 100);
+        const newCommission = monthlyNewCommission * (newCommissionPercentage / 100);
         
         // Rule: Manager Recurring Commission Rate
         // Capai Target -> 0.90%

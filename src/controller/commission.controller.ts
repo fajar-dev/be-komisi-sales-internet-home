@@ -539,20 +539,19 @@ export class CommissionController {
 
                 const performance = this.commissionHelper.calculateManagerMonthlyPerformance(monthSales);
                 monthSales.percentage = performance.percentage;
+                monthSales.target = performance.target;
                 monthSales.status = performance.status;
                 const percentageVal = performance.percentageVal;
 
                 const managerAchievement = this.commissionHelper.calculateManagerCommission(
                     percentageVal,
-                    monthTotals.monthlyNewSubscription,
+                    monthTotals.monthlyNewCommission,
                     monthTotals.monthlyRecurringSubscription,
                     monthSales.status
                 );
 
                 const finalMonthEmployees = monthEmployees.map((emp: any) => ({
                     ...emp,
-                    managerNewCommission: this.commissionHelper.formatCurrency(emp._rawNewSubscription * (managerAchievement.rates.new / 100)),
-                    managerNewCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                     managerRecurringCommission: this.commissionHelper.formatCurrency(emp._rawRecurringSubscription * (managerAchievement.rates.recurring / 100)),
                     managerRecurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring)
                 })).map(({ _rawNewSubscription, _rawRecurringSubscription, ...emp }) => emp);
@@ -567,7 +566,9 @@ export class CommissionController {
                     monthlyRecurringSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringSubscription),
                     monthlyRecurringCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringCommission),
                     achievement: {
+                        newCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                         newCommission: this.commissionHelper.formatCurrency(managerAchievement.newCommission),
+                        recurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring),
                         recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
                         totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
                     },
@@ -697,20 +698,19 @@ export class CommissionController {
 
             const performance = this.commissionHelper.calculateManagerMonthlyPerformance(monthSales);
             monthSales.percentage = performance.percentage;
+            monthSales.target = performance.target;
             monthSales.status = performance.status;
             const percentageVal = performance.percentageVal;
 
             const managerAchievement = this.commissionHelper.calculateManagerCommission(
                 percentageVal,
-                monthTotals.monthlyNewSubscription,
+                monthTotals.monthlyNewCommission,
                 monthTotals.monthlyRecurringSubscription,
                 monthSales.status
             );
 
             const finalMonthEmployees = monthEmployees.map((emp: any) => ({
                 ...emp,
-                managerNewCommission: this.commissionHelper.formatCurrency(emp._rawNewSubscription * (managerAchievement.rates.new / 100)),
-                managerNewCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                 managerRecurringCommission: this.commissionHelper.formatCurrency(emp._rawRecurringSubscription * (managerAchievement.rates.recurring / 100)),
                 managerRecurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring)
             })).map(({ _rawNewSubscription, _rawRecurringSubscription, ...emp }) => emp);
@@ -725,7 +725,9 @@ export class CommissionController {
                 monthlyRecurringSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringSubscription),
                 monthlyRecurringCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringCommission),
                 achievement: {
+                    newCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                     newCommission: this.commissionHelper.formatCurrency(managerAchievement.newCommission),
+                    recurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring),
                     recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
                     totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
                 },
