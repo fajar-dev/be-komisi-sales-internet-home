@@ -115,6 +115,7 @@ export class SnapshotController {
                     paidDate: row.paid_date,
                     month: row.month,
                     dpp: Number(dpp).toFixed(2),
+                    mrc: Number(mrc).toFixed(2),
                     newSubscription: Number(row.new_subscription || 0).toFixed(2),
                     customerServiceId: row.customer_service_id,
                     customerId: row.customer_id,
