@@ -92,16 +92,18 @@ export class CommissionController {
                 
                 const safeType = type as keyof typeof detail;
                 const serviceName = this.commissionHelper.getServiceName(row.service_id);
+                // NusaSelecta new (non-NFSP200) count dihitung per-pair, skip individual count
+                const isNusaSelectaNew = serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200' && type === 'new';
 
                 // Monthly Totals
-                stats.count++;
+                if (!isNusaSelectaNew) stats.count++;
                 stats.commission += commission;
                 stats.mrc += mrc;
                 stats.dpp += dpp;
 
                 // Detail by Type
                 if (detail[safeType]) {
-                    detail[safeType].count++;
+                    if (!isNusaSelectaNew) detail[safeType].count++;
                     detail[safeType].commission += commission;
                     detail[safeType].mrc += mrc;
                     detail[safeType].dpp += dpp;
@@ -109,19 +111,27 @@ export class CommissionController {
 
                 // Service Breakdown
                 if (serviceMap[serviceName]) {
-                    serviceMap[serviceName].count++;
+                    if (!isNusaSelectaNew) serviceMap[serviceName].count++;
                     serviceMap[serviceName].commission += commission;
                     serviceMap[serviceName].mrc += mrc;
                     serviceMap[serviceName].dpp += dpp;
                     
                     if (serviceMap[serviceName].detail[safeType]) {
-                        serviceMap[serviceName].detail[safeType].count++;
+                        if (!isNusaSelectaNew) serviceMap[serviceName].detail[safeType].count++;
                         serviceMap[serviceName].detail[safeType].commission += commission;
                         serviceMap[serviceName].detail[safeType].mrc += mrc;
                         serviceMap[serviceName].detail[safeType].dpp += dpp;
                     }
                 }
             });
+
+                // NusaSelecta new: setiap 2 pelanggan dihitung sebagai 1 count
+                stats.count += nusaSelectaPairs;
+                detail.new.count += nusaSelectaPairs;
+                if (serviceMap['NusaSelecta']) {
+                    serviceMap['NusaSelecta'].count += nusaSelectaPairs;
+                    serviceMap['NusaSelecta'].detail.new.count += nusaSelectaPairs;
+                }
 
                 const { achievementStatus, motivation } = this.commissionHelper.calculateAchievement(status as string, activityCount);
                 const bonus = this.commissionHelper.calculateBonus(activityCount);
@@ -348,16 +358,18 @@ export class CommissionController {
                 
                 const safeType = type as keyof typeof detail;
                 const serviceName = this.commissionHelper.getServiceName(row.service_id);
+                // NusaSelecta new (non-NFSP200) count dihitung per-pair, skip individual count
+                const isNusaSelectaNew = serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200' && type === 'new';
 
                 // Monthly Totals
-                stats.count++;
+                if (!isNusaSelectaNew) stats.count++;
                 stats.commission += commission;
                 stats.mrc += mrc;
                 stats.dpp += dpp;
 
                 // Detail by Type
                 if (detail[safeType]) {
-                    detail[safeType].count++;
+                    if (!isNusaSelectaNew) detail[safeType].count++;
                     detail[safeType].commission += commission;
                     detail[safeType].mrc += mrc;
                     detail[safeType].dpp += dpp;
@@ -365,19 +377,27 @@ export class CommissionController {
 
                 // Service Breakdown
                 if (serviceMap[serviceName]) {
-                    serviceMap[serviceName].count++;
+                    if (!isNusaSelectaNew) serviceMap[serviceName].count++;
                     serviceMap[serviceName].commission += commission;
                     serviceMap[serviceName].mrc += mrc;
                     serviceMap[serviceName].dpp += dpp;
                     
                     if (serviceMap[serviceName].detail[safeType]) {
-                        serviceMap[serviceName].detail[safeType].count++;
+                        if (!isNusaSelectaNew) serviceMap[serviceName].detail[safeType].count++;
                         serviceMap[serviceName].detail[safeType].commission += commission;
                         serviceMap[serviceName].detail[safeType].mrc += mrc;
                         serviceMap[serviceName].detail[safeType].dpp += dpp;
                     }
                 }
             });
+
+            // NusaSelecta new: setiap 2 pelanggan dihitung sebagai 1 count
+            stats.count += nusaSelectaPairs;
+            detail.new.count += nusaSelectaPairs;
+            if (serviceMap['NusaSelecta']) {
+                serviceMap['NusaSelecta'].count += nusaSelectaPairs;
+                serviceMap['NusaSelecta'].detail.new.count += nusaSelectaPairs;
+            }
 
             const service = Object.values(serviceMap).map((s: any) => ({
                 ...s,

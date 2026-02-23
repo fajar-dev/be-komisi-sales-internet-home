@@ -22,6 +22,7 @@ route.post('/auth/logout', (c) => authController.logout(c));
 
 
 route.get('/additional', (c) => new AdditionalController().getPeriod(c));
+route.get('/additional/invoice', (c) => new AdditionalController().getInvoice(c));
 
 route.get('/employee/:id', authMiddleware, (c) => new EmployeeController().getEmployeeByEmployeeId(c));
 route.get('/employee/:id/hierarchy', authMiddleware, (c) => new EmployeeController().getEmployeeHierarchy(c));

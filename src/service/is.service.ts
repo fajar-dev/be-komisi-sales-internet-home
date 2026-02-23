@@ -82,7 +82,24 @@ export class IsService {
                             AND cs.SalesId NOT IN ('0208801')
                         )
                     )
-                    AND s.ServiceId IN ('BFLITE', 'NFSP030', 'NFSP100', 'NFSP200', 'HOME100', 'HOMEADV200', 'HOMEPREM300', 'HOMEADV')
+                    AND s.ServiceId IN (
+                        'BFLITE',
+                        'NFSP030',
+                        'NFSP100',
+                        'NFSP200',
+                        'CBSHM',
+                        'HOME30',
+                        'HOME50',
+                        'HOME100',
+                        'HOME300',
+                        'HOMESTD100',
+                        'HOMEADV',
+                        'HOMEADV200',
+                        'HOMEPREM300',
+                        'BOOSTER100',
+                        'BOOSTER200',
+                        'BOOSTER300'
+                    )                    
                     AND (
                         (DATE(nci.InsertDate) BETWEEN ? AND ?)
                         OR (nci2.TransDate IS NOT NULL AND nci2.TransDate BETWEEN ? AND ?)

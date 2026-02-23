@@ -12,7 +12,7 @@ export class CommissionHelper {
     static getServiceName(id: string) {
         if (id === 'BFLITE') return 'Nusafiber';
         if (['NFSP030', 'FSP100', 'NFSP100', 'NFSP200'].includes(id)) return 'NusaSelecta';
-        if (['HOME100', 'HOMEADV200', 'HOMEADV', 'HOMEPREM300'].includes(id)) return 'Home';
+        if (['HOME100', 'HOMEADV200', 'HOMEADV', 'HOMEPREM300', 'HOMESTD100'].includes(id)) return 'Home';
         return 'Other';
     }
 
@@ -213,16 +213,18 @@ export class CommissionHelper {
             
             const safeType = type as keyof typeof detail;
             const serviceName = this.getServiceName(row.service_id);
+            // NusaSelecta new (non-NFSP200) count dihitung per-pair, skip individual count
+            const isNusaSelectaNew = serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200' && type === 'new';
 
             // Monthly Totals
-            stats.count++;
+            if (!isNusaSelectaNew) stats.count++;
             stats.commission += commission;
             stats.mrc += mrc;
             stats.dpp += dpp;
 
             // Detail by Type
             if (detail[safeType]) {
-                detail[safeType].count++;
+                if (!isNusaSelectaNew) detail[safeType].count++;
                 detail[safeType].commission += commission;
                 detail[safeType].mrc += mrc;
                 detail[safeType].dpp += dpp;
@@ -230,19 +232,27 @@ export class CommissionHelper {
 
             // Service Breakdown
             if (serviceMap[serviceName]) {
-                serviceMap[serviceName].count++;
+                if (!isNusaSelectaNew) serviceMap[serviceName].count++;
                 serviceMap[serviceName].commission += commission;
                 serviceMap[serviceName].mrc += mrc;
                 serviceMap[serviceName].dpp += dpp;
                 
                 if (serviceMap[serviceName].detail[safeType]) {
-                    serviceMap[serviceName].detail[safeType].count++;
+                    if (!isNusaSelectaNew) serviceMap[serviceName].detail[safeType].count++;
                     serviceMap[serviceName].detail[safeType].commission += commission;
                     serviceMap[serviceName].detail[safeType].mrc += mrc;
                     serviceMap[serviceName].detail[safeType].dpp += dpp;
                 }
             }
         });
+
+        // NusaSelecta new: setiap 2 pelanggan dihitung sebagai 1 count
+        stats.count += nusaSelectaPairs;
+        detail.new.count += nusaSelectaPairs;
+        if (serviceMap['NusaSelecta']) {
+            serviceMap['NusaSelecta'].count += nusaSelectaPairs;
+            serviceMap['NusaSelecta'].detail.new.count += nusaSelectaPairs;
+        }
 
         const { achievementStatus, motivation } = this.calculateAchievement(status as string, activityCount);
 
@@ -263,6 +273,7 @@ export class CommissionHelper {
             'NFSP100': { 1: 20.00, 6: 5.56, 12: 4.44 },
             'NFSP200': { 1: 26.00, 6: 6.00, 12: 4.67 },
             'HOME100': { 1: 28.57, 6: 5.95, 12: 4.76 },
+            'HOMESTD100': { 1: 28.57, 6: 5.95, 12: 4.76 },
             'HOMEADV200': { 1: 27.78, 6: 5.56, 12: 4.63 },
             'HOMEADV': { 1: 27.78, 6: 5.56, 12: 4.63 },
             'HOMEPREM300': { 1: 31.25, 6: 6.25, 12: 5.21 },
