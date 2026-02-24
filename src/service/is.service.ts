@@ -34,41 +34,41 @@ export class IsService {
                     cs.ManagerSalesId                                     AS manager_id,
                     IFNULL(rs.Name, "")                                   AS reseller_name
                 FROM
-                    Nusanet.CustomerInvoiceTemp cit
-                    LEFT JOIN Nusanet.CustomerInvoiceTemp_Custom citc
+                    CustomerInvoiceTemp cit
+                    LEFT JOIN CustomerInvoiceTemp_Custom citc
                         ON cit.InvoiceNum = citc.InvoiceNum
-                    AND cit.Urut       = citc.Urut
-                    LEFT JOIN Nusanet.InvoiceTypeMonth itm
+                    AND cit.Urut      = citc.Urut
+                    LEFT JOIN InvoiceTypeMonth itm
                         ON itm.InvoiceType = cit.InvoiceType
-                    LEFT JOIN Nusanet.NewCustomerInvoice nci
+                    LEFT JOIN NewCustomerInvoice nci
                         ON cit.InvoiceNum = nci.Id
                     AND nci.No         = cit.Urut
                     AND nci.Type       = 'internet'
-                    LEFT JOIN Nusanet.CustomerInvoiceDiscount cid
+                    LEFT JOIN CustomerInvoiceDiscount cid
                         ON cid.InvoiceNum = cit.InvoiceNum
                     AND cid.Urut       = cit.Urut
-                    LEFT JOIN Nusanet.NewCustomerInvoiceBatch ncib
+                    LEFT JOIN NewCustomerInvoiceBatch ncib
                         ON nci.AI = ncib.AI
-                    LEFT JOIN Nusanet.NewCustomerInvoiceBatch ncib2
+                    LEFT JOIN NewCustomerInvoiceBatch ncib2
                         ON ncib.batchNo = ncib2.batchNo
                     AND ncib2.AI    != ncib.AI
                     AND ncib2.total  > 0
-                    LEFT JOIN Nusanet.NewCustomerInvoice nci2
+                    LEFT JOIN NewCustomerInvoice nci2
                         ON ncib2.AI = nci2.AI
-                    LEFT JOIN Nusanet.CustomerServices cs
+                    LEFT JOIN CustomerServices cs
                         ON cit.CustServId = cs.CustServId
-                    LEFT JOIN Nusanet.Services s
+                    LEFT JOIN Services s
                         ON s.ServiceId = cs.ServiceId
-                    LEFT JOIN Nusanet.ServiceGroup sg
+                    LEFT JOIN ServiceGroup sg
                         ON sg.ServiceGroup = s.ServiceGroup
-                    LEFT JOIN Nusanet.Customer c
+                    LEFT JOIN Customer c
                         ON c.CustId = cs.CustId
-                    LEFT JOIN Nusanet.Reseller rs
+                    LEFT JOIN Reseller rs
                         ON c.ResellerId = rs.Id
-                    LEFT JOIN Nusanet.FiberVendorServices fvs
+                    LEFT JOIN FiberVendorServices fvs
                         ON fvs.type      = 'CustomerServices'
                     AND cs.CustServId = fvs.typeId
-                    LEFT JOIN Nusanet.NewCustomerInvoiceInternetCounter nciic
+                    LEFT JOIN NewCustomerInvoiceInternetCounter nciic
                         ON nciic.AI = nci.AI
                 WHERE
                     cit.RInvoiceNum = 0
@@ -82,24 +82,7 @@ export class IsService {
                             AND cs.SalesId NOT IN ('0208801')
                         )
                     )
-                    AND s.ServiceId IN (
-                        'BFLITE',
-                        'NFSP030',
-                        'NFSP100',
-                        'NFSP200',
-                        'CBSHM',
-                        'HOME30',
-                        'HOME50',
-                        'HOME100',
-                        'HOME300',
-                        'HOMESTD100',
-                        'HOMEADV',
-                        'HOMEADV200',
-                        'HOMEPREM300',
-                        'BOOSTER100',
-                        'BOOSTER200',
-                        'BOOSTER300'
-                    )                    
+                    AND s.ServiceId IN ('BFLITE', 'NFSP030', 'NFSP100', 'NFSP200', 'CBSHM', 'HOME30', 'HOME50', 'HOME100', 'HOME300', 'HOMESTD100', 'HOMEADV', 'HOMEADV200', 'HOMEPREM300', 'BOOSTER100', 'BOOSTER200', 'BOOSTER300')
                     AND (
                         (DATE(nci.InsertDate) BETWEEN ? AND ?)
                         OR (nci2.TransDate IS NOT NULL AND nci2.TransDate BETWEEN ? AND ?)
@@ -152,9 +135,9 @@ export class IsService {
                             ROUND(SUM((si.Unit - si.Free) * si.Price) / 1.11, 2) AS dpp,
                             si.Code                                       AS Code
                         FROM
-                            Nusanet.StockInvoice si
-                            LEFT JOIN Nusanet.StockInvoiceHead sih ON sih.No = si.No
-                            LEFT JOIN Nusanet.SPMBHead sh         ON sh.No  = sih.Spmb
+                            StockInvoice si
+                            LEFT JOIN StockInvoiceHead sih ON sih.No = si.No
+                            LEFT JOIN SPMBHead sh         ON sh.No  = sih.Spmb
                         WHERE
                             sih.Status = 'BL'
                             AND sih.RNo = 0
@@ -170,24 +153,24 @@ export class IsService {
                         ORDER BY
                             sih.No
                     ) cit
-                    LEFT JOIN Nusanet.NewCustomerInvoice nci
+                    LEFT JOIN NewCustomerInvoice nci
                         ON nci.Id   = cit.siid
                     AND nci.Type = 'stock'
-                    LEFT JOIN Nusanet.NewCustomerInvoiceBatch ncib
+                    LEFT JOIN NewCustomerInvoiceBatch ncib
                         ON nci.AI = ncib.AI
-                    LEFT JOIN Nusanet.NewCustomerInvoiceBatch ncib2
+                    LEFT JOIN NewCustomerInvoiceBatch ncib2
                         ON ncib.batchNo = ncib2.batchNo
                     AND ncib2.AI    != ncib.AI
                     AND ncib2.total  > 0
-                    LEFT JOIN Nusanet.NewCustomerInvoice nci2
+                    LEFT JOIN NewCustomerInvoice nci2
                         ON ncib2.AI = nci2.AI
-                    LEFT JOIN Nusanet.CustomerServices cs
+                    LEFT JOIN CustomerServices cs
                         ON cit.csid = cs.CustServId
-                    LEFT JOIN Nusanet.Services s
+                    LEFT JOIN Services s
                         ON s.ServiceId = cs.ServiceId
-                    LEFT JOIN Nusanet.Customer c
+                    LEFT JOIN Customer c
                         ON c.CustId = cs.CustId
-                    LEFT JOIN Nusanet.Reseller rs
+                    LEFT JOIN Reseller rs
                         ON c.ResellerId = rs.Id
                 WHERE
                     (ncib.batchNo IS NULL OR nci2.Type = 'RA02')
@@ -245,9 +228,9 @@ export class IsService {
                             ROUND(SUM((si.Unit - si.Free) * si.Price) / 1.11, 2) AS dpp,
                             si.Code                                       AS Code
                         FROM
-                            Nusanet.StockInvoice si
-                            LEFT JOIN Nusanet.StockInvoiceHead sih ON sih.No = si.No
-                            LEFT JOIN Nusanet.SPMBHead sh         ON sh.No  = sih.Spmb
+                            StockInvoice si
+                            LEFT JOIN StockInvoiceHead sih ON sih.No = si.No
+                            LEFT JOIN SPMBHead sh         ON sh.No  = sih.Spmb
                         WHERE
                             sih.Status = 'BL'
                             AND sih.RNo = 0
@@ -263,24 +246,24 @@ export class IsService {
                         ORDER BY
                             sih.No
                     ) cit
-                    LEFT JOIN Nusanet.NewCustomerInvoice nci
+                    LEFT JOIN NewCustomerInvoice nci
                         ON nci.Id   = cit.siid
                     AND nci.Type = 'stock'
-                    LEFT JOIN Nusanet.NewCustomerInvoiceBatch ncib
+                    LEFT JOIN NewCustomerInvoiceBatch ncib
                         ON nci.AI = ncib.AI
-                    LEFT JOIN Nusanet.NewCustomerInvoiceBatch ncib2
+                    LEFT JOIN NewCustomerInvoiceBatch ncib2
                         ON ncib.batchNo = ncib2.batchNo
                     AND ncib2.AI    != ncib.AI
                     AND ncib2.total  > 0
-                    LEFT JOIN Nusanet.NewCustomerInvoice nci2
+                    LEFT JOIN NewCustomerInvoice nci2
                         ON ncib2.AI = nci2.AI
-                    LEFT JOIN Nusanet.CustomerServices cs
+                    LEFT JOIN CustomerServices cs
                         ON cit.csid = cs.CustServId
-                    LEFT JOIN Nusanet.Services s
+                    LEFT JOIN Services s
                         ON s.ServiceId = cs.ServiceId
-                    LEFT JOIN Nusanet.Customer c
+                    LEFT JOIN Customer c
                         ON c.CustId = cs.CustId
-                    LEFT JOIN Nusanet.Reseller rs
+                    LEFT JOIN Reseller rs
                         ON c.ResellerId = rs.Id
                 WHERE
                     (ncib.batchNo IS NULL OR nci2.Type = 'RA02')

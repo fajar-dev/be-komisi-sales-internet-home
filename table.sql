@@ -14,6 +14,7 @@ CREATE TABLE snapshot(
     period_start CHAR(6) NULL,
     period_end CHAR(6) NULL,
     month INT NULL,
+    late_month INT DEFAULT 0,
     dpp DECIMAL(18,2) NULL,
     paid_date DATE NULL,
     new_subscription DECIMAL(18,2) NULL,

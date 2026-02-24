@@ -43,25 +43,25 @@ export class SnapshotController {
             const customerSetupMap: Record<string, boolean> = {};
 
             result.forEach((row: any) => {
-                 if (row.is_deleted) return;
-                 const serviceName = this.commissionHelper.getServiceName(row.service_id);
-                 
-                 let type = row.type;
-                 if (row.category === 'alat') type = 'alat';
-                 else if (row.category === 'setup') type = 'setup';
-                 else if (!type) type = 'recurring';
-                 if (type === 'prorata') type = 'prorate';
-                 
-                 if (type === 'new') {
-                     totalNewCount++;
-                     if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
+                if (row.is_deleted) return;
+                const serviceName = this.commissionHelper.getServiceName(row.service_id);
+                
+                let type = row.type;
+                if (row.category === 'alat') type = 'alat';
+                else if (row.category === 'setup') type = 'setup';
+                else if (!type) type = 'recurring';
+                if (type === 'prorata') type = 'prorate';
+                
+                if (type === 'new') {
+                    totalNewCount++;
+                    if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
                         nusaSelectaCount++;
-                     }
-                 }
-
-                 if (type === 'setup') {
-                     customerSetupMap[row.customer_id] = true;
-                 }
+                    }
+                }
+    
+                if (type === 'setup') {
+                    customerSetupMap[row.customer_id] = true;
+                }
             });
 
             const standardNewCount = totalNewCount - nusaSelectaCount;
@@ -90,6 +90,8 @@ export class SnapshotController {
                 const mrc = Number(row.mrc ?? 0);
                 const months = Number(row.month || 1);
                 const hasSetup = customerSetupMap[row.customer_id] || false;
+                // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
@@ -99,7 +101,7 @@ export class SnapshotController {
 
                 const { commission, commissionPercentage } = this.commissionHelper.calculateCommission(
                     row,
-                    dpp,
+                    effectiveDpp,
                     months,
                     row.service_id,
                     row.category,
@@ -112,7 +114,9 @@ export class SnapshotController {
                 const item = {
                     ai: row.ai,
                     invoiceDate: row.invoice_date,
+                    invoiceDueDate: row.invoice_due_date,
                     paidDate: row.paid_date,
+                    lateMonth: row.late_month,
                     month: row.month,
                     dpp: Number(dpp).toFixed(2),
                     mrc: Number(mrc).toFixed(2),
@@ -127,7 +131,7 @@ export class SnapshotController {
                     salesId: row.sales_id,
                     isUpgrade: row.is_upgrade,
                     isAdjustment: row.is_adjustment,
-                    type: row.type, // keeping original type field as requested in example
+                    type: row.type,
                     salesCommission: commission,
                     salesCommissionPercentage: commissionPercentage
                 };
@@ -223,6 +227,8 @@ export class SnapshotController {
 
             const dpp = Number(row.dpp ?? 0);
             const months = Number(row.month || 1);
+            // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
+            const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
             
             let type = row.type;
             if (row.category === 'alat') type = 'alat';
@@ -232,7 +238,7 @@ export class SnapshotController {
 
             const { commission, commissionPercentage } = this.commissionHelper.calculateCommission(
                 row,
-                dpp,
+                effectiveDpp,
                 months,
                 row.service_id,
                 row.category,
@@ -317,6 +323,8 @@ export class SnapshotController {
                 
                 const dpp = Number(row.dpp ?? 0);
                 const months = Number(row.month || 1);
+                // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
@@ -326,7 +334,7 @@ export class SnapshotController {
 
                 const { commission } = this.commissionHelper.calculateCommission(
                     row,
-                    dpp,
+                    effectiveDpp,
                     months,
                     row.service_id,
                     row.category,

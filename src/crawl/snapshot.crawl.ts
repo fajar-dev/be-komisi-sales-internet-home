@@ -36,6 +36,22 @@ export class SnapshotCrawl {
                      mrc = dpp / months;
                 }
             }
+
+            // Hitung keterlambatan bayar dalam bulan (30 hari = 1 bulan)
+            // Pakai selisih hari ÷ 30 supaya 1 hari terlambat tidak langsung jadi 1 bulan
+            let lateMonth: number | null = null;
+            if (row.invoice_due_date && row.paid_date) {
+                const due = new Date(row.invoice_due_date);
+                const paid = new Date(row.paid_date);
+                const diffMs = paid.getTime() - due.getTime();
+                if (diffMs <= 0) {
+                    // Bayar tepat waktu atau lebih awal
+                    lateMonth = 0;
+                } else {
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    lateMonth = Math.floor(diffDays / 30); // 0-29 hari = 0, 30-59 = 1, dst
+                }
+            }
             
             return {
                 ai: row.ai_invoice,
@@ -66,6 +82,7 @@ export class SnapshotCrawl {
                 resellerName: row.reseller_name,
                 mrc,
                 type,
+                lateMonth,
                 isAdjustment: false
             };
         });

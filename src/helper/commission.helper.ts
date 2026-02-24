@@ -76,6 +76,14 @@ export class CommissionHelper {
             data: data
         };
     }
+    // Rule: Late Payment Penalty - potong DPP berdasarkan late_month
+    // late_month 1 = 10%, 2 = 20%, ..., 5+ = 50% (maks)
+    static applyLateMonthPenalty(dpp: number, lateMonth: number | null | undefined): number {
+        if (!lateMonth || lateMonth <= 0) return dpp;
+        const deductPct = Math.min(lateMonth * 0.1, 0.5); // max 50%
+        return dpp * (1 - deductPct);
+    }
+
     static calculateCommission(
         row: any,
         dpp: number,
@@ -186,6 +194,8 @@ export class CommissionHelper {
 
             const mrc = this.toNum(row.mrc);
             const dpp = this.toNum(row.dpp);
+            // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
+            const effectiveDpp = this.applyLateMonthPenalty(dpp, row.late_month);
 
             let type = row.type;
             if (row.category === 'alat') type = 'alat';
@@ -199,7 +209,7 @@ export class CommissionHelper {
 
             const { commission: calculatedCommission } = this.calculateCommission(
                 row, 
-                dpp, 
+                effectiveDpp, 
                 months, 
                 row.service_id, 
                 row.category, 

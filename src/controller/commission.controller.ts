@@ -65,6 +65,8 @@ export class CommissionController {
 
                     const mrc = this.commissionHelper.toNum(row.mrc);
                     const dpp = this.commissionHelper.toNum(row.dpp);
+                    // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
+                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
 
                     let type = row.type;
                     if (row.category === 'alat') type = 'alat';
@@ -78,7 +80,7 @@ export class CommissionController {
 
                     const { commission: calculatedCommission } = CommissionHelper.calculateCommission(
                         row, 
-                        dpp, 
+                        effectiveDpp, 
                         months, 
                         row.service_id, 
                         row.category, 
@@ -331,6 +333,8 @@ export class CommissionController {
 
                     const mrc = this.commissionHelper.toNum(row.mrc);
                     const dpp = this.commissionHelper.toNum(row.dpp);
+                    // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
+                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
 
                     let type = row.type;
                     if (row.category === 'alat') type = 'alat';
@@ -344,7 +348,7 @@ export class CommissionController {
 
                     const { commission: calculatedCommission } = CommissionHelper.calculateCommission(
                         row, 
-                        dpp, 
+                        effectiveDpp, 
                         months, 
                         row.service_id, 
                         row.category, 
