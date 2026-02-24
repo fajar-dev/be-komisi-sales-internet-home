@@ -194,8 +194,10 @@ export class CommissionHelper {
 
             const mrc = this.toNum(row.mrc);
             const dpp = this.toNum(row.dpp);
-            // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
-            const effectiveDpp = this.applyLateMonthPenalty(dpp, row.late_month);
+            // Gunakan base_commission sebagai dasar kalkulasi komisi
+            // (fallback ke dpp untuk data lama yang belum punya base_commission)
+            const baseCommission = this.toNum(row.base_commission ?? row.dpp);
+            const effectiveDpp = this.applyLateMonthPenalty(baseCommission, row.late_month);
 
             let type = row.type;
             if (row.category === 'alat') type = 'alat';

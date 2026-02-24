@@ -27,6 +27,7 @@ CREATE TABLE snapshot(
     manager_id VARCHAR(20) NULL,
     reseller_name VARCHAR(255) NULL,
     mrc DECIMAL(15,2) NULL,
+    base_commission DECIMAL(15,2) NULL,
     type ENUM('new','prorate','upgrade','recurring') NULL DEFAULT NULL,
     is_adjustment BOOLEAN NOT NULL DEFAULT FALSE,
     INDEX idx_paid_date(paid_date),

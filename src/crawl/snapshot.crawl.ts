@@ -83,6 +83,7 @@ export class SnapshotCrawl {
                 mrc,
                 type,
                 lateMonth,
+                baseCommission: dpp,
                 isAdjustment: false
             };
         });

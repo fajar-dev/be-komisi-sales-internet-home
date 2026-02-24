@@ -90,8 +90,10 @@ export class SnapshotController {
                 const mrc = Number(row.mrc ?? 0);
                 const months = Number(row.month || 1);
                 const hasSetup = customerSetupMap[row.customer_id] || false;
-                // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
+                // Gunakan base_commission sebagai dasar kalkulasi komisi
+                // (fallback ke dpp untuk data lama yang belum punya base_commission)
+                const baseCommission = Number(row.base_commission ?? row.dpp ?? 0);
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
@@ -227,8 +229,10 @@ export class SnapshotController {
 
             const dpp = Number(row.dpp ?? 0);
             const months = Number(row.month || 1);
-            // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
-            const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
+            // Gunakan base_commission sebagai dasar kalkulasi komisi
+            // (fallback ke dpp untuk data lama yang belum punya base_commission)
+            const baseCommission = Number(row.base_commission ?? row.dpp ?? 0);
+            const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
             
             let type = row.type;
             if (row.category === 'alat') type = 'alat';
@@ -323,8 +327,10 @@ export class SnapshotController {
                 
                 const dpp = Number(row.dpp ?? 0);
                 const months = Number(row.month || 1);
-                // Rule: Potong DPP berdasarkan keterlambatan bayar sebelum hitung komisi
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(dpp, row.late_month);
+                // Gunakan base_commission sebagai dasar kalkulasi komisi
+                // (fallback ke dpp untuk data lama yang belum punya base_commission)
+                const baseCommission = Number(row.base_commission ?? row.dpp ?? 0);
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
