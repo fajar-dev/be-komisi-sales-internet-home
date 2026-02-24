@@ -65,10 +65,14 @@ export class CommissionController {
 
                     const mrc = this.commissionHelper.toNum(row.mrc);
                     const dpp = this.commissionHelper.toNum(row.dpp);
-                    // Gunakan base_commission sebagai dasar kalkulasi komisi
-                    // (fallback ke dpp untuk data lama yang belum punya base_commission)
-                    const baseCommission = this.commissionHelper.toNum(row.base_commission ?? row.dpp);
-                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
+                    const referralFee = this.commissionHelper.toNum(row.referral_fee);
+                    
+                    // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
+                    const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
+                        ? (dpp - referralFee) 
+                        : dpp;
+
+                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
 
                     let type = row.type;
                     if (row.category === 'alat') type = 'alat';
@@ -335,10 +339,14 @@ export class CommissionController {
 
                     const mrc = this.commissionHelper.toNum(row.mrc);
                     const dpp = this.commissionHelper.toNum(row.dpp);
-                    // Gunakan base_commission sebagai dasar kalkulasi komisi
-                    // (fallback ke dpp untuk data lama yang belum punya base_commission)
-                    const baseCommission = this.commissionHelper.toNum(row.base_commission ?? row.dpp);
-                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
+                    const referralFee = this.commissionHelper.toNum(row.referral_fee);
+
+                    // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
+                    const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
+                        ? (dpp - referralFee) 
+                        : dpp;
+
+                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
 
                     let type = row.type;
                     if (row.category === 'alat') type = 'alat';

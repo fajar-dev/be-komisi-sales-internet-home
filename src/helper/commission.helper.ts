@@ -194,10 +194,13 @@ export class CommissionHelper {
 
             const mrc = this.toNum(row.mrc);
             const dpp = this.toNum(row.dpp);
-            // Gunakan base_commission sebagai dasar kalkulasi komisi
-            // (fallback ke dpp untuk data lama yang belum punya base_commission)
-            const baseCommission = this.toNum(row.base_commission ?? row.dpp);
-            const effectiveDpp = this.applyLateMonthPenalty(baseCommission, row.late_month);
+            const referralFee = this.toNum(row.referral_fee);
+            // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
+            const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
+                ? (dpp - referralFee) 
+                : dpp;
+
+            const effectiveDpp = this.applyLateMonthPenalty(commissionBasis, row.late_month);
 
             let type = row.type;
             if (row.category === 'alat') type = 'alat';

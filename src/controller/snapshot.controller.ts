@@ -90,10 +90,14 @@ export class SnapshotController {
                 const mrc = Number(row.mrc ?? 0);
                 const months = Number(row.month || 1);
                 const hasSetup = customerSetupMap[row.customer_id] || false;
-                // Gunakan base_commission sebagai dasar kalkulasi komisi
-                // (fallback ke dpp untuk data lama yang belum punya base_commission)
-                const baseCommission = Number(row.base_commission ?? row.dpp ?? 0);
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
+                
+                const referralFee = Number(row.referral_fee ?? 0);
+                // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
+                const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
+                    ? (dpp - referralFee) 
+                    : dpp;
+
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
@@ -229,10 +233,14 @@ export class SnapshotController {
 
             const dpp = Number(row.dpp ?? 0);
             const months = Number(row.month || 1);
-            // Gunakan base_commission sebagai dasar kalkulasi komisi
-            // (fallback ke dpp untuk data lama yang belum punya base_commission)
-            const baseCommission = Number(row.base_commission ?? row.dpp ?? 0);
-            const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
+            
+            const referralFee = Number(row.referral_fee ?? 0);
+            // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
+            const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
+                ? (dpp - referralFee) 
+                : dpp;
+
+            const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
             
             let type = row.type;
             if (row.category === 'alat') type = 'alat';
@@ -327,10 +335,14 @@ export class SnapshotController {
                 
                 const dpp = Number(row.dpp ?? 0);
                 const months = Number(row.month || 1);
-                // Gunakan base_commission sebagai dasar kalkulasi komisi
-                // (fallback ke dpp untuk data lama yang belum punya base_commission)
-                const baseCommission = Number(row.base_commission ?? row.dpp ?? 0);
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(baseCommission, row.late_month);
+                
+                const referralFee = Number(row.referral_fee ?? 0);
+                // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
+                const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
+                    ? (dpp - referralFee) 
+                    : dpp;
+
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';

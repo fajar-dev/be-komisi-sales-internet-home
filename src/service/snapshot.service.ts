@@ -7,11 +7,11 @@ export class SnapshotService {
         ai, ai_receipt, customer_id, customer_name, customer_company,
         customer_service_id, customer_service_account, service_group,
         service_id, service_name, invoice_date, invoice_due_date,
-        period_start, period_end, month, late_month, dpp, base_commission, paid_date, new_subscription,
+        period_start, period_end, month, late_month, dpp, paid_date, new_subscription,
         counter, is_prorate, is_upgrade, line_rental, category,
         sales_id, manager_id, reseller_name, mrc, type, is_adjustment
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         ai_receipt = IF(is_adjustment = 1, ai_receipt, VALUES(ai_receipt)),
         customer_id = IF(is_adjustment = 1, customer_id, VALUES(customer_id)),
@@ -29,7 +29,6 @@ export class SnapshotService {
         month = IF(is_adjustment = 1, month, VALUES(month)),
         late_month = IF(is_adjustment = 1, late_month, VALUES(late_month)),
         dpp = IF(is_adjustment = 1, dpp, VALUES(dpp)),
-        base_commission = IF(is_adjustment = 1, base_commission, VALUES(base_commission)),
         paid_date = IF(is_adjustment = 1, paid_date, VALUES(paid_date)),
         new_subscription = IF(is_adjustment = 1, new_subscription, VALUES(new_subscription)),
         counter = IF(is_adjustment = 1, counter, VALUES(counter)),
@@ -86,7 +85,6 @@ export class SnapshotService {
         intOrNull(data.lateMonth),
 
         numOrNull(data.dpp),
-        numOrNull(data.baseCommission),
         nullIfEmpty(data.paidDate),
 
         numOrNull(data.newSubscription),
