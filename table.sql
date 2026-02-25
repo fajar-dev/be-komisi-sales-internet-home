@@ -27,7 +27,7 @@ CREATE TABLE snapshot(
     manager_id VARCHAR(20) NULL,
     reseller_name VARCHAR(255) NULL,
     mrc DECIMAL(15,2) NULL,
-    referral_fee DECIMAL(15,2) NULL,
+    referral_fee DECIMAL(15,2) DEFAULT 0,
     referral_type ENUM('OTC','Cashback', 'Monthly') NULL DEFAULT NULL,
     type ENUM('new','prorate','upgrade','recurring') NULL DEFAULT NULL,
     is_adjustment BOOLEAN NOT NULL DEFAULT FALSE,

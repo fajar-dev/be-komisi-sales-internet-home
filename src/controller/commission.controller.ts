@@ -560,6 +560,7 @@ export class CommissionController {
                          recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
                          recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
                          _rawNewSubscription: newDetail.dpp,
+                         _rawNewCommission: newDetail.commission,
                          _rawRecurringSubscription: recurringDetail.dpp
                      };
 
@@ -588,9 +589,11 @@ export class CommissionController {
 
                 const finalMonthEmployees = monthEmployees.map((emp: any) => ({
                     ...emp,
+                    managerNewCommission: this.commissionHelper.formatCurrency(emp._rawNewCommission * (managerAchievement.rates.new / 100)),
+                    managerNewCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                     managerRecurringCommission: this.commissionHelper.formatCurrency(emp._rawRecurringSubscription * (managerAchievement.rates.recurring / 100)),
                     managerRecurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring)
-                })).map(({ _rawNewSubscription, _rawRecurringSubscription, ...emp }) => emp);
+                })).map(({ _rawNewSubscription, _rawNewCommission, _rawRecurringSubscription, ...emp }) => emp);
 
                 monthlyData[monthName] = {
                     startDate,
@@ -719,6 +722,7 @@ export class CommissionController {
                         recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
                         recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
                         _rawNewSubscription: newDetail.dpp,
+                        _rawNewCommission: newDetail.commission,
                         _rawRecurringSubscription: recurringDetail.dpp
                     };
 
@@ -747,9 +751,11 @@ export class CommissionController {
 
             const finalMonthEmployees = monthEmployees.map((emp: any) => ({
                 ...emp,
+                managerNewCommission: this.commissionHelper.formatCurrency(emp._rawNewCommission * (managerAchievement.rates.new / 100)),
+                managerNewCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                 managerRecurringCommission: this.commissionHelper.formatCurrency(emp._rawRecurringSubscription * (managerAchievement.rates.recurring / 100)),
                 managerRecurringCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.recurring)
-            })).map(({ _rawNewSubscription, _rawRecurringSubscription, ...emp }) => emp);
+            })).map(({ _rawNewSubscription, _rawNewCommission, _rawRecurringSubscription, ...emp }) => emp);
 
             const response = {
                 startDate,
