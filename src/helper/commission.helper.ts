@@ -133,6 +133,10 @@ export class CommissionHelper {
                          commissionPercentage = months >= 12 ? rates[12] : (months > 1 ? rates[6] : rates[1]);
                     }
                 }
+                
+                if (status === 'Permanent' && activityCount < 12) {
+                    commissionPercentage *= 0.3;
+                }
             }
         } 
         // Rule: Setup Commission -> Always 5%
