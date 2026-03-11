@@ -4,6 +4,7 @@ import { CommissionHelper } from "../helper/commission.helper";
 import { IsService } from "../service/is.service";
 import { EmployeeService } from "../service/employee.service";
 import { SnapshotService } from "../service/snapshot.service";
+import { ChurnService } from "../service/churn.service";
 import { period } from "../helper/period";
 
 export class CommissionController {
@@ -11,6 +12,7 @@ export class CommissionController {
         private snapshotService = SnapshotService,  
         private employeeService = EmployeeService,
         private isService = IsService,
+        private churnService = ChurnService,
         private commissionHelper = CommissionHelper,
         private apiResponse = ApiResponseHandler,
     ) {}
@@ -34,121 +36,147 @@ export class CommissionController {
                 const detail = this.commissionHelper.initDetail();
                 const serviceMap: Record<string, any> = this.commissionHelper.initServiceMap();
 
-                // 1. First pass: Calculate Activity Count and identify setup categories per customer
-                let nusaSelectaCount = 0;
-                let totalNewCount = 0;
+                // 1. Identify Setup Categories and Initial New Counts
+                let initialNusaSelectaCount = 0;
+                let initialTotalNewCount = 0;
                 const customerSetupMap: Record<string, boolean> = {};
 
                 rows.forEach((row: any) => {
                      if (row.is_deleted) return;
                      const serviceName = this.commissionHelper.getServiceName(row.service_id);
-                     
-                     let type = row.type;
+                     let type = row.type || 'recurring';
                      if (row.category === 'alat') type = 'alat';
                      else if (row.category === 'setup') type = 'setup';
-                     else if (!type) type = 'recurring';
                      if (type === 'prorata') type = 'prorate';
                      
                      if (type === 'new') {
-                         totalNewCount++;
+                         initialTotalNewCount++;
                          if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
-                            nusaSelectaCount++;
+                            initialNusaSelectaCount++;
                          }
                      }
-
-                     if (type === 'setup') {
-                         customerSetupMap[row.customer_id] = true;
-                     }
+                     if (type === 'setup') customerSetupMap[row.customer_id] = true;
                 });
 
-                const standardNewCount = totalNewCount - nusaSelectaCount;
-                const nusaSelectaPairs = Math.floor(nusaSelectaCount / 2);
-                const activityCount = standardNewCount + nusaSelectaPairs;
+                // 2. Fetch and Process Churn for Achievement
+                const churnRows = await ChurnService.getChurnByEmployeeId(employeeId as string, startDate, endDate);
+                let netTotalNewCount = initialTotalNewCount;
+                let netNusaSelectaCount = initialNusaSelectaCount;
+                const churnNewCounts: Record<string, number> = { 'Home': 0, 'Nusafiber': 0, 'NusaSelecta': 0 };
 
-                // 2. Second pass: Calculate commissions
+                churnRows.forEach((row: any) => {
+                    const sName = this.commissionHelper.getServiceName(row.service_id);
+                    netTotalNewCount--;
+                    if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
+                        netNusaSelectaCount--;
+                    }
+                    if (churnNewCounts[sName] !== undefined) churnNewCounts[sName]++;
+                });
+
+                const activityCount = Math.max(0, (netTotalNewCount - netNusaSelectaCount) + Math.floor(netNusaSelectaCount / 2));
+                const { achievementStatus, motivation } = this.commissionHelper.calculateAchievement(status as string, activityCount);
+                const bonus = this.commissionHelper.calculateBonus(activityCount);
+
+                // 3. Calculate Commissions from regular rows
                 rows.forEach((row: any) => {
                     if (row.is_deleted) return;
 
                     const mrc = this.commissionHelper.toNum(row.mrc);
                     const dpp = this.commissionHelper.toNum(row.dpp);
                     const referralFee = this.commissionHelper.toNum(row.referral_fee);
-                    
-                    // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
-                    const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
-                        ? (dpp - referralFee) 
-                        : dpp;
-
+                    const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') ? (dpp - referralFee) : dpp;
                     const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
 
-                    let type = row.type;
+                    let type = row.type || 'recurring';
                     if (row.category === 'alat') type = 'alat';
                     else if (row.category === 'setup') type = 'setup';
-                    else if (!type) type = 'recurring';
-
                     if (type === 'prorata') type = 'prorate';
 
                     const months = Number(row.month || 1);
                     const hasSetup = customerSetupMap[row.customer_id] || false; 
 
-                    const { commission: calculatedCommission } = CommissionHelper.calculateCommission(
-                        row, 
-                        effectiveDpp, 
-                        months, 
-                        row.service_id, 
-                        row.category, 
-                        type,
-                        status as string,
-                        activityCount,
-                        hasSetup  
-                    );
+                    const { commission } = CommissionHelper.calculateCommission(row, commissionBasis, months, row.service_id, row.category, type, status as string, activityCount, hasSetup, row.late_month);
 
-                const commission = calculatedCommission;
-                
-                const safeType = type as keyof typeof detail;
-                const serviceName = this.commissionHelper.getServiceName(row.service_id);
-                // NusaSelecta new (non-NFSP200) count dihitung per-pair, skip individual count
-                const isNusaSelectaNew = serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200' && type === 'new';
+                    const safeType = type as keyof typeof detail;
+                    const serviceName = this.commissionHelper.getServiceName(row.service_id);
+                    const isNusaSelectaNew = serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200' && type === 'new';
 
-                // Monthly Totals
-                if (!isNusaSelectaNew) stats.count++;
-                stats.commission += commission;
-                stats.mrc += mrc;
-                stats.dpp += dpp;
+                    // Totals
+                    if (!isNusaSelectaNew) stats.count++;
+                    stats.commission += commission;
+                    stats.mrc += mrc;
+                    stats.dpp += dpp;
 
-                // Detail by Type
-                if (detail[safeType]) {
-                    if (!isNusaSelectaNew) detail[safeType].count++;
-                    detail[safeType].commission += commission;
-                    detail[safeType].mrc += mrc;
-                    detail[safeType].dpp += dpp;
-                }
-
-                // Service Breakdown
-                if (serviceMap[serviceName]) {
-                    if (!isNusaSelectaNew) serviceMap[serviceName].count++;
-                    serviceMap[serviceName].commission += commission;
-                    serviceMap[serviceName].mrc += mrc;
-                    serviceMap[serviceName].dpp += dpp;
-                    
-                    if (serviceMap[serviceName].detail[safeType]) {
-                        if (!isNusaSelectaNew) serviceMap[serviceName].detail[safeType].count++;
-                        serviceMap[serviceName].detail[safeType].commission += commission;
-                        serviceMap[serviceName].detail[safeType].mrc += mrc;
-                        serviceMap[serviceName].detail[safeType].dpp += dpp;
+                    if (detail[safeType]) {
+                        if (!isNusaSelectaNew) detail[safeType].count++;
+                        detail[safeType].commission += commission;
+                        detail[safeType].mrc += mrc;
+                        detail[safeType].dpp += dpp;
                     }
-                }
-            });
 
-                // NusaSelecta new: setiap 2 pelanggan dihitung sebagai 1 count
-                stats.count += nusaSelectaPairs;
-                detail.new.count += nusaSelectaPairs;
+                    if (serviceMap[serviceName]) {
+                        if (!isNusaSelectaNew) serviceMap[serviceName].count++;
+                        serviceMap[serviceName].commission += commission;
+                        serviceMap[serviceName].mrc += mrc;
+                        serviceMap[serviceName].dpp += dpp;
+                        if (serviceMap[serviceName].detail[safeType]) {
+                            if (!isNusaSelectaNew) serviceMap[serviceName].detail[safeType].count++;
+                            serviceMap[serviceName].detail[safeType].commission += commission;
+                            serviceMap[serviceName].detail[safeType].mrc += mrc;
+                            serviceMap[serviceName].detail[safeType].dpp += dpp;
+                        }
+                    }
+                });
+
+                // Add NusaSelecta Pairs to stats
+                const nusaSelectaPairsRaw = Math.floor(initialNusaSelectaCount / 2);
+                stats.count += nusaSelectaPairsRaw;
+                detail.new.count += nusaSelectaPairsRaw;
                 if (serviceMap['NusaSelecta']) {
-                    serviceMap['NusaSelecta'].count += nusaSelectaPairs;
-                    serviceMap['NusaSelecta'].detail.new.count += nusaSelectaPairs;
+                    serviceMap['NusaSelecta'].count += nusaSelectaPairsRaw;
+                    serviceMap['NusaSelecta'].detail.new.count += nusaSelectaPairsRaw;
                 }
 
-                const { achievementStatus, motivation } = this.commissionHelper.calculateAchievement(status as string, activityCount);
-                const bonus = this.commissionHelper.calculateBonus(activityCount);
+                // 4. Subtract Churn
+                let totalChurnMrc = 0;
+                let totalChurnCommission = 0;
+                churnRows.forEach((row: any) => {
+                    const sName = this.commissionHelper.getServiceName(row.service_id);
+                    const price = this.commissionHelper.toNum(row.price);
+                    const periodVal = Math.max(this.commissionHelper.toNum(row.period), 1);
+                    const mrc = price / periodVal;
+                    
+                    const { commission } = CommissionHelper.calculateCommission(row, price, periodVal, row.service_id, 'home', 'new', status || '', 12);
+                    
+                    totalChurnMrc += mrc;
+                    totalChurnCommission += commission;
+
+                    stats.count--;
+                    stats.commission -= commission;
+                    stats.mrc -= mrc;
+                    stats.dpp -= price;
+
+                    if (detail.new) {
+                        detail.new.count--;
+                        detail.new.commission -= commission;
+                        detail.new.mrc -= mrc;
+                        detail.new.dpp -= price;
+                    }
+
+                    if (serviceMap[sName]) {
+                        serviceMap[sName].count--;
+                        serviceMap[sName].commission -= commission;
+                        serviceMap[sName].mrc -= mrc;
+                        serviceMap[sName].dpp -= price;
+                        if (serviceMap[sName].detail && serviceMap[sName].detail.new) {
+                            serviceMap[sName].detail.new.count--;
+                            serviceMap[sName].detail.new.commission -= commission;
+                            serviceMap[sName].detail.new.mrc -= mrc;
+                            serviceMap[sName].detail.new.dpp -= price;
+                        }
+                    }
+                });
+
                 const totalCommission = stats.commission + bonus;
 
                 const service = Object.values(serviceMap).map((s: any) => ({
@@ -189,6 +217,11 @@ export class CommissionController {
                             alat: { ...detail.alat, commission: this.commissionHelper.formatCurrency(detail.alat.commission), mrc: this.commissionHelper.formatCurrency(detail.alat.mrc), dpp: this.commissionHelper.formatCurrency(detail.alat.dpp) },
                             setup: { ...detail.setup, commission: this.commissionHelper.formatCurrency(detail.setup.commission), mrc: this.commissionHelper.formatCurrency(detail.setup.mrc), dpp: this.commissionHelper.formatCurrency(detail.setup.dpp) }
                         },
+                        deduction: {
+                            mrc: this.commissionHelper.formatCurrency(totalChurnMrc),
+                            commission: this.commissionHelper.formatCurrency(totalChurnCommission),
+                            new: Object.entries(churnNewCounts).map(([name, count]) => ({ name, count }))
+                        },
                         service
                     }
                 } as any;
@@ -198,6 +231,9 @@ export class CommissionController {
             const yearlyStats = this.commissionHelper.initStats();
             let yearlyBonus = 0;
             let yearlyTotalCommission = 0;
+            let yearlyChurnMrc = 0;
+            let yearlyChurnCommission = 0;
+            const yearlyChurnNewCounts: Record<string, number> = { 'Home': 0, 'Nusafiber': 0, 'NusaSelecta': 0 };
             const yearlyDetail = this.commissionHelper.initDetail();
             const yearlyServiceMap: any = this.commissionHelper.initServiceMap();
 
@@ -216,6 +252,16 @@ export class CommissionController {
                 yearlyTotalCommission += this.commissionHelper.toNum(mData.totalCommission);
                 yearlyStats.mrc += this.commissionHelper.toNum(mData.mrc);
                 yearlyStats.dpp += this.commissionHelper.toNum(mData.dpp);
+                yearlyChurnMrc += this.commissionHelper.toNum(mData.deduction.mrc);
+                yearlyChurnCommission += this.commissionHelper.toNum(mData.deduction.commission);
+                
+                if (mData.deduction.new && Array.isArray(mData.deduction.new)) {
+                    mData.deduction.new.forEach((item: { name: string, count: number }) => {
+                        if (yearlyChurnNewCounts[item.name] !== undefined) {
+                            yearlyChurnNewCounts[item.name] += item.count;
+                        }
+                    });
+                }
 
                 // Detail
                 ['new', 'upgrade', 'prorate', 'recurring', 'alat', 'setup'].forEach((key: string) => {
@@ -274,6 +320,11 @@ export class CommissionController {
                     alat: { ...yearlyDetail.alat, commission: this.commissionHelper.formatCurrency(yearlyDetail.alat.commission), mrc: this.commissionHelper.formatCurrency(yearlyDetail.alat.mrc), dpp: this.commissionHelper.formatCurrency(yearlyDetail.alat.dpp) },
                     setup: { ...yearlyDetail.setup, commission: this.commissionHelper.formatCurrency(yearlyDetail.setup.commission), mrc: this.commissionHelper.formatCurrency(yearlyDetail.setup.mrc), dpp: this.commissionHelper.formatCurrency(yearlyDetail.setup.dpp) }
                 },
+                deduction: {
+                    mrc: this.commissionHelper.formatCurrency(yearlyChurnMrc),
+                    commission: this.commissionHelper.formatCurrency(yearlyChurnCommission),
+                    new: Object.entries(yearlyChurnNewCounts).map(([name, count]) => ({ name, count }))
+                },
                 service: yearlyService,
                 monthly: monthlyData
             };
@@ -308,88 +359,77 @@ export class CommissionController {
             const stats = this.commissionHelper.initStats();
             const detail = this.commissionHelper.initDetail();
             const serviceMap: Record<string, any> = this.commissionHelper.initServiceMap();
-            // 1. First pass: Calculate Activity Count for Achievement
-            let nusaSelectaCount = 0;
-            let totalNewCount = 0;
+
+            // 1. Identify Setup Categories and Initial New Counts
+            let initialNusaSelectaCount = 0;
+            let initialTotalNewCount = 0;
             const customerSetupMap: Record<string, boolean> = {};
 
             rows.forEach((row: any) => {
                  if (row.is_deleted) return;
                  const serviceName = this.commissionHelper.getServiceName(row.service_id);
-                 
-                 let type = row.type;
+                 let type = row.type || 'recurring';
                  if (row.category === 'alat') type = 'alat';
                  else if (row.category === 'setup') type = 'setup';
-                 else if (!type) type = 'recurring';
                  if (type === 'prorata') type = 'prorate';
                  
                  if (type === 'new') {
-                     totalNewCount++;
+                     initialTotalNewCount++;
                      if (serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
-                        nusaSelectaCount++;
+                        initialNusaSelectaCount++;
                      }
                  }
-
-                 if (type === 'setup') {
-                     customerSetupMap[row.customer_id] = true;
-                 }
+                 if (type === 'setup') customerSetupMap[row.customer_id] = true;
             });
 
-            const standardNewCount = totalNewCount - nusaSelectaCount;
-            const nusaSelectaPairs = Math.floor(nusaSelectaCount / 2);
-            const activityCount = standardNewCount + nusaSelectaPairs;
+            // 2. Fetch and Process Churn for Achievement
+            const churnRows = await ChurnService.getChurnByEmployeeId(employeeId as string, startDate, endDate);
+            let netTotalNewCount = initialTotalNewCount;
+            let netNusaSelectaCount = initialNusaSelectaCount;
+            const churnNewCounts: Record<string, number> = { 'Home': 0, 'Nusafiber': 0, 'NusaSelecta': 0 };
 
-            // 2. Second pass: Calculate commissions and details
+            churnRows.forEach((row: any) => {
+                const sName = this.commissionHelper.getServiceName(row.service_id);
+                netTotalNewCount--;
+                if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
+                    netNusaSelectaCount--;
+                }
+                if (churnNewCounts[sName] !== undefined) churnNewCounts[sName]++;
+            });
+
+            const activityCount = Math.max(0, (netTotalNewCount - netNusaSelectaCount) + Math.floor(netNusaSelectaCount / 2));
+            const { achievementStatus, motivation } = this.commissionHelper.calculateAchievement(status as string, activityCount);
+            const bonus = this.commissionHelper.calculateBonus(activityCount);
+
+            // 3. Second pass: Calculate commissions and details
             rows.forEach((row: any) => {
                 if (row.is_deleted) return;
 
-                    const mrc = this.commissionHelper.toNum(row.mrc);
-                    const dpp = this.commissionHelper.toNum(row.dpp);
-                    const referralFee = this.commissionHelper.toNum(row.referral_fee);
+                const mrc = this.commissionHelper.toNum(row.mrc);
+                const dpp = this.commissionHelper.toNum(row.dpp);
+                const referralFee = this.commissionHelper.toNum(row.referral_fee);
+                const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') ? (dpp - referralFee) : dpp;
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
 
-                    // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
-                    const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
-                        ? (dpp - referralFee) 
-                        : dpp;
+                let type = row.type || 'recurring';
+                if (row.category === 'alat') type = 'alat';
+                else if (row.category === 'setup') type = 'setup';
+                if (type === 'prorata') type = 'prorate';
 
-                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
+                const months = Number(row.month || 1);
+                const hasSetup = customerSetupMap[row.customer_id] || false;
 
-                    let type = row.type;
-                    if (row.category === 'alat') type = 'alat';
-                    else if (row.category === 'setup') type = 'setup';
-                    else if (!type) type = 'recurring';
+                const { commission } = CommissionHelper.calculateCommission(row, commissionBasis, months, row.service_id, row.category, type, status as string, activityCount, hasSetup, row.late_month);
 
-                    if (type === 'prorata') type = 'prorate';
-
-                    const months = Number(row.month || 1);
-                    const hasSetup = customerSetupMap[row.customer_id] || false;
-
-                    const { commission: calculatedCommission } = CommissionHelper.calculateCommission(
-                        row, 
-                        effectiveDpp, 
-                        months, 
-                        row.service_id, 
-                        row.category, 
-                        type,
-                        status as string,
-                        activityCount,
-                        hasSetup
-                    );
-
-                    const commission = calculatedCommission;
-                
                 const safeType = type as keyof typeof detail;
                 const serviceName = this.commissionHelper.getServiceName(row.service_id);
-                // NusaSelecta new (non-NFSP200) count dihitung per-pair, skip individual count
                 const isNusaSelectaNew = serviceName === 'NusaSelecta' && row.service_id !== 'NFSP200' && type === 'new';
 
-                // Monthly Totals
                 if (!isNusaSelectaNew) stats.count++;
                 stats.commission += commission;
                 stats.mrc += mrc;
                 stats.dpp += dpp;
 
-                // Detail by Type
                 if (detail[safeType]) {
                     if (!isNusaSelectaNew) detail[safeType].count++;
                     detail[safeType].commission += commission;
@@ -397,13 +437,11 @@ export class CommissionController {
                     detail[safeType].dpp += dpp;
                 }
 
-                // Service Breakdown
                 if (serviceMap[serviceName]) {
                     if (!isNusaSelectaNew) serviceMap[serviceName].count++;
                     serviceMap[serviceName].commission += commission;
                     serviceMap[serviceName].mrc += mrc;
                     serviceMap[serviceName].dpp += dpp;
-                    
                     if (serviceMap[serviceName].detail[safeType]) {
                         if (!isNusaSelectaNew) serviceMap[serviceName].detail[safeType].count++;
                         serviceMap[serviceName].detail[safeType].commission += commission;
@@ -413,13 +451,54 @@ export class CommissionController {
                 }
             });
 
-            // NusaSelecta new: setiap 2 pelanggan dihitung sebagai 1 count
-            stats.count += nusaSelectaPairs;
-            detail.new.count += nusaSelectaPairs;
+            // NusaSelecta new pairs adjustment for display
+            const initialNusaSelectaPairs = Math.floor(initialNusaSelectaCount / 2);
+            stats.count += initialNusaSelectaPairs;
+            detail.new.count += initialNusaSelectaPairs;
             if (serviceMap['NusaSelecta']) {
-                serviceMap['NusaSelecta'].count += nusaSelectaPairs;
-                serviceMap['NusaSelecta'].detail.new.count += nusaSelectaPairs;
+                serviceMap['NusaSelecta'].count += initialNusaSelectaPairs;
+                serviceMap['NusaSelecta'].detail.new.count += initialNusaSelectaPairs;
             }
+
+            // 4. Process churn amounts subtraction
+            let totalChurnMrc = 0;
+            let totalChurnCommission = 0;
+            churnRows.forEach((row: any) => {
+                const sName = this.commissionHelper.getServiceName(row.service_id);
+                const price = this.commissionHelper.toNum(row.price);
+                const periodVal = Math.max(this.commissionHelper.toNum(row.period), 1);
+                const mrc = price / periodVal;
+                
+                const { commission } = CommissionHelper.calculateCommission(row, price, periodVal, row.service_id, 'home', 'new', status || '', 12);
+                
+                totalChurnMrc += mrc;
+                totalChurnCommission += commission;
+
+                stats.count--;
+                stats.commission -= commission;
+                stats.mrc -= mrc;
+                stats.dpp -= price;
+
+                if (detail.new) {
+                    detail.new.count--;
+                    detail.new.commission -= commission;
+                    detail.new.mrc -= mrc;
+                    detail.new.dpp -= price;
+                }
+
+                if (serviceMap[sName]) {
+                    serviceMap[sName].count--;
+                    serviceMap[sName].commission -= commission;
+                    serviceMap[sName].mrc -= mrc;
+                    serviceMap[sName].dpp -= price;
+                    if (serviceMap[sName].detail && serviceMap[sName].detail.new) {
+                        serviceMap[sName].detail.new.count--;
+                        serviceMap[sName].detail.new.commission -= commission;
+                        serviceMap[sName].detail.new.mrc -= mrc;
+                        serviceMap[sName].detail.new.dpp -= price;
+                    }
+                }
+            });
 
             const service = Object.values(serviceMap).map((s: any) => ({
                 ...s,
@@ -434,9 +513,6 @@ export class CommissionController {
                 }
             }));
 
-            const { achievementStatus, motivation } = this.commissionHelper.calculateAchievement(status as string, activityCount);
-            const bonus = this.commissionHelper.calculateBonus(activityCount);
-            
             const totalCommission = stats.commission + bonus;
             
             const finalResult = {
@@ -455,6 +531,11 @@ export class CommissionController {
                     recurring: { ...detail.recurring, commission: this.commissionHelper.formatCurrency(detail.recurring.commission), mrc: this.commissionHelper.formatCurrency(detail.recurring.mrc), dpp: this.commissionHelper.formatCurrency(detail.recurring.dpp) },
                     alat: { ...detail.alat, commission: this.commissionHelper.formatCurrency(detail.alat.commission), mrc: this.commissionHelper.formatCurrency(detail.alat.mrc), dpp: this.commissionHelper.formatCurrency(detail.alat.dpp) },
                     setup: { ...detail.setup, commission: this.commissionHelper.formatCurrency(detail.setup.commission), mrc: this.commissionHelper.formatCurrency(detail.setup.mrc), dpp: this.commissionHelper.formatCurrency(detail.setup.dpp) }
+                },
+                deduction: {
+                    mrc: this.commissionHelper.formatCurrency(totalChurnMrc),
+                    commission: this.commissionHelper.formatCurrency(totalChurnCommission),
+                    new: Object.entries(churnNewCounts).map(([name, count]) => ({ name, count }))
                 },
                 service
             };
@@ -690,12 +771,15 @@ export class CommissionController {
             };
 
             for (const member of team) {
-                    const rows = await this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate);
-                    const status = await this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate);
+                    const [rows, churnRows, status] = await Promise.all([
+                        this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate),
+                        this.churnService.getChurnByEmployeeId(member.employee_id as string, startDate, endDate),
+                        this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate)
+                    ]);
 
                     if (!status) continue;
 
-                    const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status);
+                    const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status, churnRows);
                     
                     const type = statsResult.status || "Permanent";
                     if (type === 'Permanent') {

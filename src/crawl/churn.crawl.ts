@@ -10,9 +10,9 @@ export class ChurnCrawl {
     ) {}
 
     async crawlChurn() {
-        // const { startDate, endDate } = this.periodHelper.getStartAndEndDateForCurrentMonth();
-        const startDate = '2026-01-26';
-        const endDate = '2026-02-25';
+        const { startDate, endDate } = this.periodHelper.getStartAndEndDateForCurrentMonth();
+        // const startDate = '2026-01-26';
+        // const endDate = '2026-02-25';
         console.log(`Starting Churn crawl for period: ${startDate} to ${endDate}...`);
         
         const rows = await this.isService.getChurnbyDateRange(startDate, endDate);

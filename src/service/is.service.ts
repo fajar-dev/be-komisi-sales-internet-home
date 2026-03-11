@@ -308,11 +308,13 @@ export class IsService {
                 cs.Subscription AS subscription,
                 cs.Discount AS discount,
                 IFNULL(itm.Month, 1) AS period,
-                (cs.Subscription - cs.Discount) / IFNULL(itm.Month, 1) AS price
+                (cs.Subscription - cs.Discount) / IFNULL(itm.Month, 1) AS price,
+                i.TotalInvoice 
             FROM CustomerServices cs 
             LEFT JOIN Customer c ON c.CustId = cs.CustId 
             LEFT JOIN Services s ON s.ServiceId = cs.ServiceId
             LEFT JOIN InvoiceTypeMonth itm ON itm.InvoiceType = cs.InvoiceType
+            LEFT  JOIN (select CustId, CustServId, count(*) TotalInvoice from CustomerInvoiceTemp where Reverse = 0 AND RInvoiceNum = 0 group by CustServId) AS i ON i.CustServId = cs.CustServId
             WHERE cs.ServiceId IN ('BFLITE', 'CBSHM', 'HOME30', 'HOME50', 'HOME100', 'HOME300', 'HOMESTD100', 'HOMEADV', 'HOMEADV200', 'HOMEPREM300', 'BOOSTER100', 'BOOSTER200', 'BOOSTER300')
             AND cs.CustStatus = 'NA' 
             AND cs.CustUnregDate BETWEEN ? AND ?
@@ -324,7 +326,8 @@ export class IsService {
                     IFNULL(c.DisplayBranchId, c.BranchId) = '028'
                     AND cs.SalesId NOT IN ('0208801')
                 )
-            );
+            )
+            HAVING i.TotalInvoice > 0;
         `;
         const [rows] = await nisPool.query({
             sql: query,

@@ -63,4 +63,21 @@ export class ChurnService {
             console.log(`[Churn Sync] Deleted ${toDelete.length} orphaned records from local DB.`);
         }
     }
+
+    static async getChurnByEmployeeId(employeeId: string, startDate: string, endDate: string) {
+        const [rows] = await pool.query(
+            `SELECT * FROM churn WHERE sales_id = ? AND unregistration_date BETWEEN ? AND ?`,
+            [employeeId, startDate, endDate]
+        );
+        return rows as any[];
+    }
+
+    static async getChurnByEmployeeIds(employeeIds: string[], startDate: string, endDate: string) {
+        if (employeeIds.length === 0) return [];
+        const [rows] = await pool.query(
+            `SELECT * FROM churn WHERE sales_id IN (?) AND unregistration_date BETWEEN ? AND ?`,
+            [employeeIds, startDate, endDate]
+        );
+        return rows as any[];
+    }
 }

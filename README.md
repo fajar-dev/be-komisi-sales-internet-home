@@ -16,14 +16,15 @@ open http://localhost:3000
 
 ## Aturan dan Perhitungan Komisi Sales & Manager
 
-### 1. Dasar Pengenaan Komisi & Penalti Keterlambatan Bayar
+### 1. Dasar Pengenaan Komisi & Penalti (Base Commission)
 
 - **Commission Basis**: Jika tipe referral pelanggan adalah `Cashback` atau `Monthly`, dasar pengenaan komisi adalah `DPP - Referral Fee`. Selain dari tipe itu, dasar komisi dihitung full dari `DPP`.
-- **Late Month Penalty (Keterlambatan Bayar)**: Akan ada pemotongan Dasar Komisi/DPP bergantung pada keterlambatan pembayaran bulanan (`late_month`):
-  - Terlambat 1 bulan = Komisi dipotong 10%
-  - Terlambat 2 bulan = Komisi dipotong 20%
-  - ... dan seterusnya maksimal potongan 50% (jika terlambat >= 5 bulan).
-- Nilai DPP yang sudah dikurangi penalti ini disebut **Effective DPP** yang digunakan untuk perhitungan komisi final.
+- **Penalti Persentase (Percentage Deductions)**: Terdapat dua penalti utama yang mengurangi Dasar Komisi sebelum dikalikan persentase rate komisi:
+  1. **Late Month Penalty (Keterlambatan Bayar)**: 10% per bulan keterlambatan (`late_month`), maksimal **50%** (jika terlambat >= 5 bulan).
+  2. **Low Activity Penalty (Gagal Target)**: Khusus Sales berstatus **Permanent** pada layanan **New**, jika Activity Count < 12, maka dikenakan penalti sebesar **70%** (Ambil 30% dari DPP).
+- **Base Commission (Dasar Komisi Akhir)**: Dihitung dengan rumus:
+  `Base Commission = Commission Basis * (1 - Total Persentase Penalti)`.
+  _Contoh: Jika Sales Permanent gagal target (70%) dan pelanggan telat bayar 2 bulan (20%), maka total penalti adalah 90%. Base Commission = Basis _ 0.1.\*
 
 ### 2. Aturan Komisi Sales
 
@@ -40,7 +41,7 @@ open http://localhost:3000
   - **HomePrem300**: Kontrak 1 bln (31.25%), >= 6 bln (6.25%), >= 12 bln (5.21%)
   - **NusaSelecta (NFSP030, NFSP100)**: Kontrak < 6 bln (20.00%), >= 6 bln (5.56%), >= 12 bln (4.44%)
   - **NusaSelecta (NFSP200)**: Kontrak < 6 bln (26.00%), >= 6 bln (6.00%), >= 12 bln (4.67%)
-  - _Note Khusus Layanan Baru (New)_: Jika Sales berstatus **Permanent** dan Activity Count < 12, maka total komisi yang didapat akan dikali **0.3** (didiskon/penalti 70%).
+  - _Note_: Penalti 30% untuk Sales Permanent dengan Activity < 12 sudah dihitung pada **Base Commission** (Point 1).
 
 **B. Kategori Layanan Lainnya ("Setup" & "Alat")**
 
@@ -49,7 +50,7 @@ open http://localhost:3000
   - Jika pembelian alat dibundel bersamaan dengan Setup pemasangan pelanggan: komisi **2%**.
   - Jika pembelian alat tersendiri (standalone): komisi **1%**.
 
-_Total Pembayaran Komisi Sales (per item) = `Effective DPP` x `Persentase Komisi` / 100._
+_Total Pembayaran Komisi Sales (per item) = `Base Commission` x `Persentase Komisi` / 100._
 
 ---
 

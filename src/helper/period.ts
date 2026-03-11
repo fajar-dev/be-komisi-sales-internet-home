@@ -40,4 +40,18 @@ export class period{
             endDate: format(endDate, 'yyyy-MM-dd')
         };
     }
+
+    static getPeriodByDate(date: Date) {
+        let monthIndex = date.getMonth();
+        let year = date.getFullYear();
+
+        if (date.getDate() > 25) {
+            monthIndex += 1;
+            if (monthIndex > 11) {
+                monthIndex = 0;
+                year += 1;
+            }
+        }
+        return this.getStartAndEndDateForMonth(year, monthIndex);
+    }
 }

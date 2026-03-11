@@ -5,11 +5,13 @@ import { IsService } from '../service/is.service';
 import { EmployeeService } from '../service/employee.service';
 import { period } from '../helper/period';
 import { CommissionHelper } from '../helper/commission.helper';
+import { ChurnService } from '../service/churn.service';
 
 export class SnapshotController {
     constructor(
         private snapshotService = SnapshotService,
         private employeeService = EmployeeService,
+        private churnService = ChurnService,
         private commissionHelper = CommissionHelper,
         private apiResponse = ApiResponseHandler,
     ) {}
@@ -37,6 +39,9 @@ export class SnapshotController {
             const status = await this.employeeService.getStatusByPeriod(employeeId as string, startDate, endDate);
             const result = await this.snapshotService.getSnapshotBySales(employeeId as string, startDate, endDate);
 
+            // Fetch Churn for Achievement Adjustment
+            const churnRows = await ChurnService.getChurnByEmployeeId(employeeId as string, startDate, endDate);
+            
             // Calculate Activity Count and identify setup categories per customer
             let nusaSelectaCount = 0;
             let totalNewCount = 0;
@@ -64,9 +69,18 @@ export class SnapshotController {
                 }
             });
 
+            // Adjust by churn
+            churnRows.forEach((row: any) => {
+                const sName = this.commissionHelper.getServiceName(row.service_id);
+                totalNewCount--;
+                if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
+                    nusaSelectaCount--;
+                }
+            });
+
             const standardNewCount = totalNewCount - nusaSelectaCount;
             const nusaSelectaPairs = Math.floor(nusaSelectaCount / 2);
-            const activityCount = standardNewCount + nusaSelectaPairs;
+            const activityCount = Math.max(0, standardNewCount + nusaSelectaPairs);
 
             const responseData = {
                 startPeriod: startDate,
@@ -105,16 +119,17 @@ export class SnapshotController {
                 else if (!type) type = 'recurring';
                 if (type === 'prorata') type = 'prorate';
 
-                const { commission, commissionPercentage } = this.commissionHelper.calculateCommission(
+                const { commission, commissionPercentage, baseCommission } = this.commissionHelper.calculateCommission(
                     row,
-                    effectiveDpp,
+                    commissionBasis,
                     months,
                     row.service_id,
                     row.category,
                     type,
                     status as string,
                     activityCount,
-                    hasSetup
+                    hasSetup,
+                    row.late_month
                 );
 
                 const item = {
@@ -138,6 +153,7 @@ export class SnapshotController {
                     isUpgrade: row.is_upgrade,
                     isAdjustment: row.is_adjustment,
                     type: row.type,
+                    baseCommission: baseCommission.toFixed(2),
                     salesCommission: commission,
                     salesCommissionPercentage: commissionPercentage
                 };
@@ -251,13 +267,58 @@ export class SnapshotController {
             else if (!type) type = 'recurring';
             if (type === 'prorata') type = 'prorate';
 
-            const { commission, commissionPercentage } = this.commissionHelper.calculateCommission(
+            // To apply the 30% rule correctly, we need the context of the whole month's activity
+            const invoiceDate = new Date(row.invoice_date);
+            const { startDate, endDate } = period.getPeriodByDate(invoiceDate);
+            
+            const [status, allMonthSnapshots, churnRows] = await Promise.all([
+                this.employeeService.getStatusByPeriod(row.sales_id, startDate, endDate),
+                this.snapshotService.getSnapshotBySales(row.sales_id, startDate, endDate),
+                ChurnService.getChurnByEmployeeId(row.sales_id, startDate, endDate)
+            ]);
+
+            let nusaSelectaCount = 0;
+            let totalNewCount = 0;
+            const customerSetupMap: Record<string, boolean> = {};
+
+            allMonthSnapshots.forEach((s: any) => {
+                if (s.is_deleted) return;
+                const serviceName = this.commissionHelper.getServiceName(s.service_id);
+                let stype = s.type;
+                if (s.category === 'alat') stype = 'alat';
+                else if (s.category === 'setup') stype = 'setup';
+                else if (!stype) stype = 'recurring';
+                if (stype === 'prorata') stype = 'prorate';
+
+                if (stype === 'new') {
+                    totalNewCount++;
+                    if (serviceName === 'NusaSelecta' && s.service_id !== 'NFSP200') {
+                        nusaSelectaCount++;
+                    }
+                }
+                if (stype === 'setup') customerSetupMap[s.customer_id] = true;
+            });
+
+            churnRows.forEach((c: any) => {
+                const sName = this.commissionHelper.getServiceName(c.service_id);
+                totalNewCount--;
+                if (sName === 'NusaSelecta' && c.service_id !== 'NFSP200') nusaSelectaCount--;
+            });
+
+            const activityCount = Math.max(0, (totalNewCount - nusaSelectaCount) + Math.floor(nusaSelectaCount / 2));
+            const hasSetup = customerSetupMap[row.customer_id] || false;
+
+            const { commission, commissionPercentage, baseCommission } = this.commissionHelper.calculateCommission(
                 row,
-                effectiveDpp,
+                commissionBasis,
                 months,
                 row.service_id,
                 row.category,
-                type
+                type,
+                status as string,
+                activityCount,
+                hasSetup,
+                row.late_month
             );
 
             const data = {
@@ -288,6 +349,7 @@ export class SnapshotController {
                 type: row.type,
                 modal: row.modal,
                 typeSub: row.type_sub,
+                baseCommission: baseCommission.toFixed(2),
                 salesCommission: commission,
                 salesCommissionPercentage: commissionPercentage,
             };
@@ -389,5 +451,91 @@ export class SnapshotController {
         }
     }
 
+    async salesChurn(c: Context) {
+        try {
+            const employeeId = c.req.param("id");
+            const { month, year } = c.req.query();
 
+            if (!employeeId || !month || !year) {
+                return c.json(this.apiResponse.error("Missing employee ID, month or year parameter"), 400);
+            }
+
+            const monthInt = parseInt(month as string);
+            const yearInt = parseInt(year as string);
+
+            if (isNaN(monthInt) || isNaN(yearInt)) {
+                 return c.json(this.apiResponse.error("Invalid month or year parameter"), 400);
+            }
+
+            const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
+            const churnRows = await ChurnService.getChurnByEmployeeId(employeeId as string, startDate, endDate);
+            const employeeStatus = await this.employeeService.getStatusByPeriod(employeeId as string, startDate, endDate);
+
+            const result = churnRows.map(row => {
+                const price = Number(row.price);
+                const periodVal = Math.max(Number(row.period), 1);
+                const mrc = price / periodVal;
+                
+                // Calculating commission deduction based on new installation rate
+                const { commission, commissionPercentage, baseCommission } = CommissionHelper.calculateCommission(
+                    row,
+                    price,
+                    periodVal,
+                    row.service_id,
+                    'home', 
+                    'new',  
+                    employeeStatus || '',
+                    12, // Assume target reached for deduction purposes
+                    false,
+                    0 // lateMonth
+                );
+
+                const registrationDate = new Date(row.registration_date);
+                const unregistrationDate = new Date(row.unregistration_date);
+                let subscriptionPeriod = "-";
+
+                if (!isNaN(registrationDate.getTime()) && !isNaN(unregistrationDate.getTime())) {
+                    let months = (unregistrationDate.getFullYear() - registrationDate.getFullYear()) * 12 + (unregistrationDate.getMonth() - registrationDate.getMonth());
+                    let days = unregistrationDate.getDate() - registrationDate.getDate();
+
+                    if (days < 0) {
+                        months--;
+                        const lastDayOfMonth = new Date(unregistrationDate.getFullYear(), unregistrationDate.getMonth(), 0).getDate();
+                        days += lastDayOfMonth;
+                    }
+
+                    const periodParts = [];
+                    if (months > 0) periodParts.push(`${months} bulan`);
+                    if (days > 0) periodParts.push(`${days} hari`);
+                    
+                    subscriptionPeriod = periodParts.length > 0 ? periodParts.join(" ") : "0 hari";
+                }
+
+                return {
+                    customerServiceId: row.customer_service_id,
+                    customerId: row.customer_id,
+                    customerName: row.customer_name,
+                    customerServiceAccount: row.customer_service_account,
+                    serviceId: row.service_id,
+                    serviceName: row.service_name,
+                    registrationDate: row.registration_date,
+                    unregistrationDate: row.unregistration_date,
+                    subscriptionPeriod: subscriptionPeriod,
+                    reason: row.reason,
+                    period: periodVal,
+                    price: price,
+                    salesId: row.sales_id,
+                    managerId: row.manager_id,
+                    mrc: mrc,
+                    baseCommission: baseCommission.toFixed(2),
+                    commission: commission,
+                    commissionPercentage: commissionPercentage
+                };
+            });
+
+            return c.json(this.apiResponse.success("Sales churn retrieved successfully", result));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("Failed to retrieve sales churn", error.message), 500);
+        }
+    }
 }

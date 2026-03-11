@@ -10,9 +10,13 @@ export class CommissionHelper {
     }
 
     static getServiceName(id: string) {
-        if (id === 'BFLITE') return 'Nusafiber';
-        if (['NFSP030', 'FSP100', 'NFSP100', 'NFSP200'].includes(id)) return 'NusaSelecta';
-        if (['HOME100', 'HOMEADV200', 'HOMEADV', 'HOMEPREM300', 'HOMESTD100'].includes(id)) return 'Home';
+        const nusafiberCodes = ['BFLITE'];
+        const nusaSelectaCodes = ['NFSP030', 'NFSP100', 'NFSP200'];
+        const homeCodes = ['HOME100', 'HOMEADV200', 'HOMEADV', 'HOMEPREM300', 'HOMESTD100'];
+
+        if (nusafiberCodes.includes(id)) return 'Nusafiber';
+        if (nusaSelectaCodes.includes(id)) return 'NusaSelecta';
+        if (homeCodes.includes(id)) return 'Home';
         return 'Other';
     }
 
@@ -93,11 +97,18 @@ export class CommissionHelper {
         type: string,
         status: string = '',
         activityCount: number = 0,
-        hasSetup: boolean = false
-    ): { commission: number, commissionPercentage: number } {
+        hasSetup: boolean = false,
+        lateMonth: number = 0
+    ): { commission: number, commissionPercentage: number, baseCommission: number } {
         const commissionRates = this.getCommissionRates();
 
         let commissionPercentage = 0;
+        let penaltyPct = 0;
+
+        // Rule: Late Payment Penalty - 10% per month, max 50%
+        if (lateMonth > 0) {
+            penaltyPct += Math.min(lateMonth * 0.1, 0.5);
+        }
 
         if (category === 'home') {
             // Rule: Prorate Commission -> Always 10%
@@ -134,8 +145,9 @@ export class CommissionHelper {
                     }
                 }
                 
+                // Rule: Reduction by 70% if Permanent & Low Activity (Base becomes 30%)
                 if (status === 'Permanent' && activityCount < 12) {
-                    commissionPercentage *= 0.3;
+                    penaltyPct += 0.7;
                 }
             }
         } 
@@ -152,11 +164,13 @@ export class CommissionHelper {
             }
         }
 
-        const commission = dpp * (commissionPercentage / 100);
-        return { commission, commissionPercentage };
+        // Base Commission = dpp - sum of all percentage penalties
+        const baseCommission = Math.max(0, dpp * (1 - penaltyPct));
+        const commission = baseCommission * (commissionPercentage / 100);
+        return { commission, commissionPercentage, baseCommission };
     }
 
-    static calculateEmployeeMonthlyStats(rows: any[], status: string | null) {
+    static calculateEmployeeMonthlyStats(rows: any[], status: string | null, churnRows: any[] = []) {
         const stats = this.initStats();
         const detail = this.initDetail();
         const serviceMap: Record<string, any> = this.initServiceMap();
@@ -188,9 +202,21 @@ export class CommissionHelper {
              }
         });
 
-        const standardNewCount = totalNewCount - nusaSelectaCount;
-        const nusaSelectaPairs = Math.floor(nusaSelectaCount / 2);
-        const activityCount = standardNewCount + nusaSelectaPairs;
+        // Use net counts after churn for activityCount
+        let netTotalNewCount = totalNewCount;
+        let netNusaSelectaCount = nusaSelectaCount;
+
+        churnRows.forEach((row: any) => {
+            const sName = this.getServiceName(row.service_id);
+            netTotalNewCount--;
+            if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
+                netNusaSelectaCount--;
+            }
+        });
+
+        const standardNewCount = netTotalNewCount - netNusaSelectaCount;
+        const nusaSelectaPairs = Math.floor(netNusaSelectaCount / 2);
+        const activityCount = Math.max(0, standardNewCount + nusaSelectaPairs);
 
         // 2. Second pass
         rows.forEach((row: any) => {
@@ -218,14 +244,15 @@ export class CommissionHelper {
 
             const { commission: calculatedCommission } = this.calculateCommission(
                 row, 
-                effectiveDpp, 
+                commissionBasis, 
                 months, 
                 row.service_id, 
                 row.category, 
                 type,
                 status as string,
                 activityCount,
-                hasSetup  
+                hasSetup,
+                row.late_month
             );
 
             const commission = calculatedCommission;
