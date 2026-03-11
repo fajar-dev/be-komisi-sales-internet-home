@@ -32,8 +32,8 @@ open http://localhost:3000
 
 - **Prorate (Prorata)**: Komisi flat **10%**.
 - **Recurring (Langganan Berulang)**:
-  - Mendapatkan **1.5%** dari Effective DPP.
-  - _Pengecualian_: Jika Sales berstatus **Permanent** dan pencapaian target aktivitasnya lambat (< 12 activity count), komisi diturunkan menjadi **0.5%**.
+  - Mendapatkan **1.5%** dari Base Commission.
+  - _Note_: Jika Sales berstatus **Permanent** dan failing target (< 12 activity), maka Base Commission-nya otomatis menjadi 30% dari DPP (lihat Point 1).
 - **Upgrade & New (Baru)**: Persentase komisi ditentukan dari `Service ID` dan lama masa kontrak (`months`):
   - **Nusafiber (BFLITE)**: Kontrak 1 bln (28.38%), >= 6 bln (6.55%), >= 12 bln (5.09%)
   - **Home100, HomeSTD100**: Kontrak 1 bln (28.57%), >= 6 bln (5.95%), >= 12 bln (4.76%)

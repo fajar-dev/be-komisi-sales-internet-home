@@ -111,6 +111,11 @@ export class CommissionHelper {
         }
 
         if (category === 'home') {
+            // Rule: Base Commission is only 30% (Penalty 70%) if Permanent & Low Activity
+            if (status === 'Permanent' && activityCount < 12) {
+                penaltyPct += 0.7;
+            }
+
             // Rule: Prorate Commission -> Always 10%
             if (type === 'prorate') {
                 commissionPercentage = 10;
@@ -126,13 +131,9 @@ export class CommissionHelper {
                     }
                 }
             } 
-            // Rule: Recurring Commission -> 0.5% if Permanent & Low Activity (<12), otherwise 1.5%
+            // Rule: Recurring Commission -> 1.5%
             else if (type === 'recurring') {
-                if (status === 'Permanent' && activityCount < 12) {
-                    commissionPercentage = 0.5;
-                } else {
-                    commissionPercentage = 1.5;
-                }
+                commissionPercentage = 1.5;
             } 
             // Rule: New Installation Commission -> Based on defined rates
             else if (type === 'new') {
@@ -143,11 +144,6 @@ export class CommissionHelper {
                     } else {
                          commissionPercentage = months >= 12 ? rates[12] : (months > 1 ? rates[6] : rates[1]);
                     }
-                }
-                
-                // Rule: Reduction by 70% if Permanent & Low Activity (Base becomes 30%)
-                if (status === 'Permanent' && activityCount < 12) {
-                    penaltyPct += 0.7;
                 }
             }
         } 
