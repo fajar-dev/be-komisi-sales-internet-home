@@ -121,7 +121,18 @@ export class Nusawork {
             emp.employee_id === '0200306' ||
             emp.employee_id === '0201325' ||
             emp.employee_id === '0202215' ||
-            emp.employee_id === '0209901'
+            emp.employee_id === '0209901' ||
+            emp.employee_id === '0202258' ||
+            emp.employee_id === '0202521' ||
+            emp.employee_id === '0202526' ||
+            emp.employee_id === '0201510' ||
+            emp.employee_id === '0202483' ||
+            emp.employee_id === '0201203' ||
+            emp.employee_id === '0200806' ||
+            emp.employee_id === '0202623' ||
+            emp.employee_id === '02025133' ||
+            emp.employee_id === '0200925' ||
+            emp.employee_id === '0202482'
         )
 
         return accountManager.map((emp: any) => ({
