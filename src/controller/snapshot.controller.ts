@@ -19,8 +19,8 @@ export class SnapshotController {
             const { month, year } = c.req.query();
             const employeeId = c.req.param('id');
 
-            if (!month || !year) {
-                 return c.json(this.apiResponse.error("Missing month or year parameter"), 400);
+            if (!month || !year || !employeeId) {
+                 return c.json(this.apiResponse.error("Missing month, year, or employee ID parameter"), 400);
             }
 
             const monthInt = parseInt(month as string);
@@ -34,8 +34,8 @@ export class SnapshotController {
             // monthInt is 1-based, period helper expects 0-based
             const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
 
-            const status = await this.employeeService.getStatusByPeriod(employeeId, startDate, endDate);
-            const result = await this.snapshotService.getSnapshotBySales(employeeId, startDate, endDate);
+            const status = await this.employeeService.getStatusByPeriod(employeeId as string, startDate, endDate);
+            const result = await this.snapshotService.getSnapshotBySales(employeeId as string, startDate, endDate);
 
             // Calculate Activity Count and identify setup categories per customer
             let nusaSelectaCount = 0;
@@ -225,6 +225,9 @@ export class SnapshotController {
     async salesSnapshotByAi(c: Context) {
         try {
             const ai = c.req.param('ai');
+            if (!ai) {
+                return c.json(this.apiResponse.error("Missing ai parameter"), 400);
+            }
             const row: any = await this.snapshotService.getSnapshotByAi(ai);
 
             if (!row) {
@@ -301,6 +304,11 @@ export class SnapshotController {
         try {
             const employeeId = c.req.param('id');
             const { year } = c.req.query();
+
+            if (!employeeId || !year) {
+                return c.json(this.apiResponse.error("Missing employee ID or year parameter"), 400);
+            }
+
             const yearInt = parseInt(year as string);
 
             if (isNaN(yearInt)) {
@@ -313,7 +321,7 @@ export class SnapshotController {
             const startDate = startPeriod.startDate;
             const endDate = endPeriod.endDate;
 
-            const hierarchy = await this.employeeService.getHierarchy(employeeId);
+            const hierarchy = await this.employeeService.getHierarchy(employeeId, undefined, true, false);
             
             // Exclude the manager themselves
             const subordinates = hierarchy.filter((e: any) => e.employee_id !== employeeId);
@@ -367,7 +375,7 @@ export class SnapshotController {
             const data = subordinates.map((emp: any) => ({
                 ...emp,
                 totalCommission: commissionMap.get(emp.employee_id) || 0
-            }));
+            })).filter((emp: any) => emp.is_active || emp.totalCommission > 0);
 
             const total = data.reduce((sum: number, emp: any) => sum + emp.totalCommission, 0);
 

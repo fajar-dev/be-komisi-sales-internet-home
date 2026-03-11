@@ -22,7 +22,10 @@ export class IsService {
                     cit.AwalPeriode                                       AS period_start,
                     cit.AkhirPeriode                                      AS period_end,
                     IFNULL(itm.Month, 1)                                  AS month,
-                    nciic.dpp                                			  AS dpp,
+                    CASE
+                            WHEN nciic.new_subscription = 0 OR nciic.new_subscription IS NULL THEN nciic.dpp
+                            ELSE nciic.new_subscription
+                        END AS dpp,
                     MAX(nci2.TransDate)                                   AS paid_date,
                     nciic.new_subscription                                AS new_subscription,
                     nciic.counter                                         AS counter,
@@ -297,17 +300,23 @@ export class IsService {
                 cs.CustAccName AS customer_service_account,
                 cs.ServiceId AS service_id,
                 s.ServiceType AS service_name,
-                cs.CustRegDate AS registation_date,
-                cs.CustUnregDate AS unregistartion_date,
+                cs.CustActivationDate AS registration_date,
+                cs.CustUnregDate AS unregistration_date,
                 cs.CustCloseReason AS reason,
                 cs.SalesId AS sales_id,
-                cs.ManagerSalesId AS manager_id
+                cs.ManagerSalesId AS manager_id,
+                cs.Subscription AS subscription,
+                cs.Discount AS discount,
+                IFNULL(itm.Month, 1) AS period,
+                (cs.Subscription - cs.Discount) / IFNULL(itm.Month, 1) AS price
             FROM CustomerServices cs 
             LEFT JOIN Customer c ON c.CustId = cs.CustId 
             LEFT JOIN Services s ON s.ServiceId = cs.ServiceId
-            WHERE cs.ServiceId IN ('BFLITE', 'NFSP030', 'NFSP100', 'NFSP200', 'HOME100', 'HOMEADV200', 'HOMEPREM300', 'HOMEADV')
+            LEFT JOIN InvoiceTypeMonth itm ON itm.InvoiceType = cs.InvoiceType
+            WHERE cs.ServiceId IN ('BFLITE', 'CBSHM', 'HOME30', 'HOME50', 'HOME100', 'HOME300', 'HOMESTD100', 'HOMEADV', 'HOMEADV200', 'HOMEPREM300', 'BOOSTER100', 'BOOSTER200', 'BOOSTER300')
             AND cs.CustStatus = 'NA' 
             AND cs.CustUnregDate BETWEEN ? AND ?
+            -- AND cs.CustUnregDate < DATE_ADD(cs.CustRegDate, INTERVAL IFNULL(itm.Month, 12) MONTH)
             AND cs.CustUnregDate <= DATE_ADD(cs.CustRegDate, INTERVAL 1 YEAR)
             AND (
                 IFNULL(c.DisplayBranchId, c.BranchId) IN ('020', '062', '025', '027', '029')

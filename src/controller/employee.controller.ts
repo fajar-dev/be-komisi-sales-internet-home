@@ -11,7 +11,7 @@ export class EmployeeController {
     async getEmployeeByEmployeeId(c: Context) {
         try {
             const employeeId = c.req.param('id');
-            const result = await this.employeeService.getEmployeeByEmployeeId(employeeId);
+            const result = await this.employeeService.getEmployeeByEmployeeId(employeeId as string);
             if(!result){
                 return c.json(this.apiResponse.error('Employee not found'), 404);
             }
@@ -25,7 +25,7 @@ export class EmployeeController {
         try {
             const employeeId = c.req.param('id');
             const search = c.req.query('q');
-            const hierarchy = await this.employeeService.getHierarchy(employeeId, search);
+            const hierarchy = await this.employeeService.getHierarchy(employeeId as string, search);
 
             return c.json(this.apiResponse.success("Employee hierarchy retrieved successfully", hierarchy));
         } catch (error: any) {

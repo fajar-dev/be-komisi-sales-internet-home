@@ -17,9 +17,10 @@ export class EmployeeService {
             branch,
             status,
             manager_id,
-            has_dashboard
+            has_dashboard,
+            is_active
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, true)
             ON DUPLICATE KEY UPDATE
             employee_id = VALUES(employee_id),
             name = VALUES(name),
@@ -30,7 +31,8 @@ export class EmployeeService {
             job_level = VALUES(job_level),
             branch = VALUES(branch),
             manager_id = VALUES(manager_id),
-            has_dashboard = VALUES(has_dashboard)
+            has_dashboard = VALUES(has_dashboard),
+            is_active = true
             `,
             [
             data.userId,
@@ -94,12 +96,16 @@ export class EmployeeService {
         return rows.length > 0 ? rows[0] : null;
     }
 
-    static async getHierarchy(employeeId: string, search?: string, isSelf: boolean = true) {
+    static async getHierarchy(employeeId: string, search?: string, isSelf: boolean = true, isActiveOnly: boolean = true) {
         const employee: any = await this.getEmployeeByEmployeeId(employeeId);
 
         if (employee && employee.manager_id == null) {
             let query = `SELECT * FROM employee WHERE has_dashboard = true`;
             const params: any[] = [];
+
+            if (isActiveOnly) {
+                query += ` AND is_active = true`;
+            }
 
             if (search) {
                 query += ` AND (name LIKE ? OR employee_id LIKE ? OR job_position LIKE ? OR organization_name LIKE ? OR job_level LIKE ? OR branch LIKE ?)`;
@@ -128,6 +134,9 @@ export class EmployeeService {
                 )
                 SELECT * FROM employee_hierarchy WHERE has_dashboard = true
             `;
+            if (isActiveOnly) {
+                query += ` AND is_active = true`;
+            }
             params = [employeeId];
         } else {
             const employeeData: any = await this.getEmployeeByEmployeeId(employeeId);
@@ -145,6 +154,9 @@ export class EmployeeService {
                 )
                 SELECT * FROM employee_hierarchy WHERE has_dashboard = true
             `;
+            if (isActiveOnly) {
+                query += ` AND is_active = true`;
+            }
             params = [employeeData.id];
         }
 
@@ -189,6 +201,20 @@ export class EmployeeService {
         );
 
         return rows.length > 0 ? rows[0].status : null;
+    }
+
+    static async getAllEmployeeIds() {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT employee_id FROM employee`
+        );
+        return rows.map(row => row.employee_id);
+    }
+
+    static async updateEmployeeActiveStatus(employeeId: string, isActive: boolean) {
+        await pool.query(
+            `UPDATE employee SET is_active = ? WHERE employee_id = ?`,
+            [isActive, employeeId]
+        );
     }
 
 }

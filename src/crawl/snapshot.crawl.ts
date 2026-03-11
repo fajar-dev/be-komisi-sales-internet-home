@@ -11,8 +11,10 @@ export class SnapshotCrawl {
 
     async crawlInvoice() {
         const { startDate, endDate } = this.periodHelper.getStartAndEndDateForCurrentMonth();
+        // const startDate = '2026-01-26';
+        // const endDate = '2026-02-25';
+        
         const rows = await this.isService.getInvoiceByDateRange(startDate, endDate);
-        // const rows = await this.isService.getInvoiceByDateRange('2025-12-26', '2026-01-25');
 
 
         const commissionData = rows.map((row: any) => {
@@ -87,9 +89,14 @@ export class SnapshotCrawl {
             };
         });
         
+        const validAis: string[] = [];
         for (const data of commissionData) {
             await this.snapshotService.insertSnapshot(data);
+            validAis.push(data.ai);
             console.log("Invoice inserted:", data.ai);
         }
+
+        // Delete records in local database that are no longer in the crawl (deleted at source)
+        await this.snapshotService.deleteMissingSnapshots(validAis, startDate, endDate);
     }
 }

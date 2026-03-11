@@ -158,4 +158,38 @@ export class SnapshotService {
         `, [ai]);
         return (rows as any[])[0];
     }
+
+    static async deleteMissingSnapshots(validAis: string[], startDate: string, endDate: string) {
+        // Safeguard: Jika hasil crawl benar-benar kosong, jangan hapus apapun (mencegah mass-delete jika ada error koneksi)
+        if (validAis.length === 0) {
+            console.log("[Sync] Crawl returned 0 items. Skipping deletion safeguard.");
+            return;
+        }
+
+        // 1. Cari data di DB lokal yang seharusnya masuk dalam kriteria crawl (di periode ini)
+        // tapi TIDAK ADA di dalam daftar AI hasil crawl terbaru.
+        // Kita juga pastikan hanya menghapus kategori yang di-crawl ('home', 'alat', 'setup')
+        const sqlFind = `
+            SELECT ai FROM snapshot 
+            WHERE (paid_date BETWEEN ? AND ? OR invoice_date BETWEEN ? AND ?)
+            AND category IN ('home', 'alat', 'setup')
+            AND is_adjustment = 0
+        `;
+        
+        const [rows] = await pool.query(sqlFind, [startDate, endDate, startDate, endDate]);
+        const localAis = (rows as any[]).map(r => String(r.ai));
+        const crawledAis = validAis.map(v => String(v));
+
+        // 2. Tentukan mana yang "Selisih" (Ada di lokal tapi sudah Hilang di NCIIC)
+        const toDelete = localAis.filter(ai => !crawledAis.includes(ai));
+
+        if (toDelete.length > 0) {
+            // 3. Hapus hanya yang selisih
+            await pool.query(`DELETE FROM snapshot WHERE ai IN (?)`, [toDelete]);
+            console.log(`[Sync] Found difference: ${toDelete.length} records in Local DB no longer exist in NCIIC. Deleted.`);
+            console.log(`[Sync] Deleted IDs:`, toDelete);
+        } else {
+            console.log(`[Sync] Database local sudah sinkron dengan NCIIC. Tidak ada data selisih.`);
+        }
+    }
 }

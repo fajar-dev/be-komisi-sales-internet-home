@@ -13,9 +13,8 @@ export const hierarchyMiddleware = async (c: Context, next: Next) => {
 
         const currentEmployeeId = user.sub;
 
-        // Fetch hierarchy for the current user
-        // This returns the current user and all subordinates
-        const hierarchy = await EmployeeService.getHierarchy(currentEmployeeId);
+        // Fetch hierarchy for the current user including inactive employees for authorization check
+        const hierarchy = await EmployeeService.getHierarchy(currentEmployeeId, undefined, true, false);
 
         // Check if the target employee ID exists in the hierarchy list
         const isAuthorized = hierarchy.some((emp: any) => emp.employee_id === targetEmployeeId);

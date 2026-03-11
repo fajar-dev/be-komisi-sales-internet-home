@@ -18,7 +18,13 @@ export class CommissionController {
     async salesCommission(c: Context) {
         try {
             const employeeId = c.req.param("id");
-            const year = Number(c.req.query("year"));
+            const yearStr = c.req.query("year");
+
+            if (!employeeId || !yearStr) {
+                return c.json(this.apiResponse.error("Missing employee ID or year parameter"), 400);
+            }
+
+            const year = Number(yearStr);
 
             const annual = await this.commissionHelper.processAnnualCommission(year, async (startDate, endDate) => {
                 const rows = await this.snapshotService.getSnapshotBySales(employeeId, startDate, endDate);
@@ -296,8 +302,8 @@ export class CommissionController {
 
             const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
 
-            const status = await this.employeeService.getStatusByPeriod(employeeId, startDate, endDate);
-            const rows = await this.snapshotService.getSnapshotBySales(employeeId, startDate, endDate);
+            const status = await this.employeeService.getStatusByPeriod(employeeId as string, startDate, endDate);
+            const rows = await this.snapshotService.getSnapshotBySales(employeeId as string, startDate, endDate);
             
             const stats = this.commissionHelper.initStats();
             const detail = this.commissionHelper.initDetail();
@@ -471,9 +477,14 @@ export class CommissionController {
         try {
             const employeeId = c.req.param("id");
             const yearStr = c.req.query("year");
+
+            if (!employeeId) {
+                return c.json(this.apiResponse.error("Missing employee ID parameter"), 400);
+            }
+
             const year = yearStr ? Number(yearStr) : new Date().getFullYear();
 
-            const team = await this.employeeService.getHierarchy(employeeId, "", false);
+            const team = await this.employeeService.getHierarchy(employeeId, "", false, false);
             const months = [
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
@@ -513,8 +524,8 @@ export class CommissionController {
                 };
 
                 for (const member of team) {
-                     const rows = await this.snapshotService.getSnapshotBySales(member.employee_id, startDate, endDate);
-                     const status = await this.employeeService.getStatusByPeriod(member.employee_id, startDate, endDate);
+                     const rows = await this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate);
+                     const status = await this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate);
 
                      if (!status) continue;
 
@@ -564,7 +575,10 @@ export class CommissionController {
                          _rawRecurringSubscription: recurringDetail.dpp
                      };
 
-                     monthEmployees.push(employeeData);
+                     // Only show if active or has data
+                     if (statsResult.activityCount > 0 || recurringDetail.commission > 0 || member.is_active) {
+                        monthEmployees.push(employeeData);
+                     }
 
                      // Accumulate Month Totals
                      monthTotals.monthlyNewMrc += newDetail.mrc;
@@ -655,7 +669,7 @@ export class CommissionController {
             }
 
             const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
-            const team = await this.employeeService.getHierarchy(employeeId, "", false);
+            const team = await this.employeeService.getHierarchy(employeeId as string, "", false, false);
 
             const monthEmployees: any[] = [];
             const monthTotals = {
@@ -676,8 +690,8 @@ export class CommissionController {
             };
 
             for (const member of team) {
-                    const rows = await this.snapshotService.getSnapshotBySales(member.employee_id, startDate, endDate);
-                    const status = await this.employeeService.getStatusByPeriod(member.employee_id, startDate, endDate);
+                    const rows = await this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate);
+                    const status = await this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate);
 
                     if (!status) continue;
 
@@ -726,7 +740,10 @@ export class CommissionController {
                         _rawRecurringSubscription: recurringDetail.dpp
                     };
 
-                    monthEmployees.push(employeeData);
+                    // Only show if active or has data
+                    if (statsResult.activityCount > 0 || recurringDetail.commission > 0 || member.is_active) {
+                        monthEmployees.push(employeeData);
+                    }
 
                     // Accumulate Month Totals
                     monthTotals.monthlyNewMrc += newDetail.mrc;
