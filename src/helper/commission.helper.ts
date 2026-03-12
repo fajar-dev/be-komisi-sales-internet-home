@@ -302,6 +302,54 @@ export class CommissionHelper {
             serviceMap['NusaSelecta'].detail.new.count += nusaSelectaPairs;
         }
 
+        // 3. Process churn amounts subtraction
+        let totalChurnMrc = 0;
+        let totalChurnCommission = 0;
+        let totalChurnSubscription = 0;
+        const churnNewCounts: Record<string, number> = {};
+
+        churnRows.forEach((row: any) => {
+            if (row.is_approved) return;
+            const sName = this.getServiceName(row.service_id);
+            const price = this.toNum(row.price);
+            const periodVal = Math.max(this.toNum(row.period), 1);
+            const mrc = price / periodVal;
+            
+            // Rule: Churn deduction is based on 'new' status and target level 12 (as per existing controllers)
+            const { commission } = this.calculateCommission(row, price, periodVal, row.service_id, 'home', 'new', status || '', 12);
+            
+            totalChurnMrc += mrc;
+            totalChurnCommission += commission;
+            totalChurnSubscription += price;
+
+            churnNewCounts[sName] = (churnNewCounts[sName] || 0) + 1;
+
+            stats.count--;
+            stats.commission -= commission;
+            stats.mrc -= mrc;
+            stats.dpp -= price;
+
+            if (detail.new) {
+                detail.new.count--;
+                detail.new.commission -= commission;
+                detail.new.mrc -= mrc;
+                detail.new.dpp -= price;
+            }
+
+            if (serviceMap[sName]) {
+                serviceMap[sName].count--;
+                serviceMap[sName].commission -= commission;
+                serviceMap[sName].mrc -= mrc;
+                serviceMap[sName].dpp -= price;
+                if (serviceMap[sName].detail && serviceMap[sName].detail.new) {
+                    serviceMap[sName].detail.new.count--;
+                    serviceMap[sName].detail.new.commission -= commission;
+                    serviceMap[sName].detail.new.mrc -= mrc;
+                    serviceMap[sName].detail.new.dpp -= price;
+                }
+            }
+        });
+
         const { achievementStatus, motivation } = this.calculateAchievement(status as string, activityCount);
 
         return {
@@ -310,7 +358,13 @@ export class CommissionHelper {
             serviceMap,
             activityCount,
             status,
-            achievementStatus
+            achievementStatus,
+            deduction: {
+                mrc: totalChurnMrc,
+                commission: totalChurnCommission,
+                subscription: totalChurnSubscription,
+                new: Object.entries(churnNewCounts).map(([name, count]) => ({ name, count }))
+            }
         };
     }
 

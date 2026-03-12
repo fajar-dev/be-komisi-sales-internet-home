@@ -301,11 +301,14 @@ export class SnapshotController {
                 if (stype === 'setup') customerSetupMap[s.customer_id] = true;
             });
 
+            // Adjust by churn
             churnRows.forEach((c: any) => {
                 if (c.is_approved) return;
                 const sName = this.commissionHelper.getServiceName(c.service_id);
                 totalNewCount--;
-                if (sName === 'NusaSelecta' && c.service_id !== 'NFSP200') nusaSelectaCount--;
+                if (sName === 'NusaSelecta' && c.service_id !== 'NFSP200') {
+                    nusaSelectaCount--;
+                }
             });
 
             const activityCount = Math.max(0, (totalNewCount - nusaSelectaCount) + Math.floor(nusaSelectaCount / 2));
@@ -397,45 +400,37 @@ export class SnapshotController {
 
             const employeeIds = subordinates.map((e: any) => e.employee_id);
             const snapshots = await this.snapshotService.getSnapshotBySalesIds(employeeIds, startDate, endDate);
+            const churns = await this.churnService.getChurnByEmployeeIds(employeeIds, startDate, endDate);
+            const statusRecords = await this.employeeService.getStatusesByPeriodAndIds(employeeIds, startDate, endDate);
 
-            // Group snapshots by sales_id and sum commission
+            // Group data by salesperson
+            const groupSnapshots = (sid: string) => snapshots.filter((s: any) => s.sales_id === sid);
+            const groupChurns = (sid: string) => churns.filter((c: any) => c.sales_id === sid);
+            const findStatus = (sid: string, start: string, end: string) => 
+                statusRecords.find((r: any) => r.employee_id === sid && r.start_date === start && r.end_date === end)?.status || null;
+
             const commissionMap = new Map<string, number>();
-            snapshots.forEach((row: any) => {
-                if (row.is_deleted === 1 || row.is_deleted === true) return;
-                // if (row.is_upgrade === 1 && row.upgrade_count > 1) return;
 
-                const salesId = row.sales_id;
-                
-                const dpp = Number(row.dpp ?? 0);
-                const months = Number(row.month || 1);
-                
-                const referralFee = Number(row.referral_fee ?? 0);
-                // Jika referral_type == Cashback | Monthly makan dpp - referral jika tidak ambil saja dari dpp
-                const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') 
-                    ? (dpp - referralFee) 
-                    : dpp;
+            for (const empId of employeeIds) {
+                let totalEmpCommission = 0;
+                const empSnapshots = groupSnapshots(empId);
+                const empChurns = groupChurns(empId);
 
-                const typeForPenalty = (row.category === 'alat') ? 'alat' : (row.category === 'setup' ? 'setup' : (row.type === 'prorata' ? 'prorate' : (row.type || 'recurring')));
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month, row.is_approved, typeForPenalty);
-                
-                let type = row.type;
-                if (row.category === 'alat') type = 'alat';
-                else if (row.category === 'setup') type = 'setup';
-                else if (!type) type = 'recurring';
-                if (type === 'prorata') type = 'prorate';
+                // Yearly loop – month by month (0 to 11)
+                for (let m = 0; m < 12; m++) {
+                    const { startDate: mStart, endDate: mEnd } = period.getStartAndEndDateForMonth(yearInt, m);
+                    
+                    const monthlyRows = empSnapshots.filter((s: any) => s.paid_date >= mStart && s.paid_date <= mEnd);
+                    const monthlyChurns = empChurns.filter((c: any) => c.unregistration_date >= mStart && c.unregistration_date <= mEnd);
+                    const status = findStatus(empId, mStart, mEnd);
 
-                const { commission } = this.commissionHelper.calculateCommission(
-                    row,
-                    commissionBasis,
-                    months,
-                    row.service_id,
-                    row.category,
-                    type
-                );
-
-                const current = commissionMap.get(salesId) || 0;
-                commissionMap.set(salesId, current + commission);
-            });
+                    if (monthlyRows.length > 0 || monthlyChurns.length > 0) {
+                        const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(monthlyRows, status, monthlyChurns);
+                        totalEmpCommission += statsResult.stats.commission;
+                    }
+                }
+                commissionMap.set(empId, totalEmpCommission);
+            }
 
             // Map results back to hierarchy
             const data = subordinates.map((emp: any) => ({

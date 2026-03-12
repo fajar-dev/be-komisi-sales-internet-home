@@ -203,6 +203,15 @@ export class EmployeeService {
         return rows.length > 0 ? rows[0].status : null;
     }
 
+    static async getStatusesByPeriodAndIds(employeeIds: string[], startDate: string, endDate: string) {
+        if (employeeIds.length === 0) return [];
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT employee_id, status, start_date, end_date FROM status_period WHERE employee_id IN (?) AND start_date >= ? AND end_date <= ?`,
+            [employeeIds, startDate, endDate]
+        );
+        return rows as any[];
+    }
+
     static async getAllEmployeeIds() {
         const [rows] = await pool.query<RowDataPacket[]>(
             `SELECT employee_id FROM employee`

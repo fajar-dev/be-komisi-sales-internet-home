@@ -593,7 +593,10 @@ export class CommissionController {
                 yearlyNewSubscription: 0,
                 yearlyNewCommission: 0,
                 yearlyRecurringSubscription: 0,
-                yearlyRecurringCommission: 0
+                yearlyRecurringCommission: 0,
+                yearlyChurnMrc: 0,
+                yearlyChurnCommission: 0,
+                yearlyChurnSubscription: 0
             };
 
             for (let i = 0; i < 12; i++) {
@@ -606,7 +609,10 @@ export class CommissionController {
                     monthlyNewSubscription: 0,
                     monthlyNewCommission: 0,
                     monthlyRecurringSubscription: 0,
-                    monthlyRecurringCommission: 0
+                    monthlyRecurringCommission: 0,
+                    monthlyChurnMrc: 0,
+                    monthlyChurnCommission: 0,
+                    monthlyChurnSubscription: 0
                 };
 
                 const monthSales: any = {
@@ -619,68 +625,76 @@ export class CommissionController {
                 };
 
                 for (const member of team) {
-                     const rows = await this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate);
-                     const status = await this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate);
+                    const [rows, churnRows, status] = await Promise.all([
+                        this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate),
+                        this.churnService.getChurnByEmployeeId(member.employee_id as string, startDate, endDate),
+                        this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate)
+                    ]);
 
-                     if (!status) continue;
+                    if (!status) continue;
 
-                     const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status);
-                     
-                     const type = statsResult.status || "Permanent";
-                     if (type === 'Permanent') {
-                         monthSales.Permanent++;
-                     } else {
-                         monthSales.Probation++;
-                     }
-                     monthSales.total++;
-                     monthSales.activity += statsResult.activityCount;
+                    const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status, churnRows);
 
-                     const newDetail = statsResult.detail.new;
-                     const recurringDetail = statsResult.detail.recurring;
-                     
-                     // New Service breakdown
-                     // New Service breakdown
-                     const newServices = Object.values(statsResult.serviceMap).map((s: any) => {
-                         const n = s.detail.new;
-                         return {
-                             name: s.name,
-                             count: n.count,
-                             mrc: this.commissionHelper.formatCurrency(n.mrc),
-                             subscription: this.commissionHelper.formatCurrency(n.dpp)
-                         };
-                     });
+                    const type = statsResult.status || "Permanent";
+                    if (type === 'Permanent') {
+                        monthSales.Permanent++;
+                    } else {
+                        monthSales.Probation++;
+                    }
+                    monthSales.total++;
+                    monthSales.activity += statsResult.activityCount;
 
-                     const employeeData = {
-                         name: member.name,
-                         employeeId: member.employee_id,
-                         photoProfile: member.photo_profile,
-                         achievement: {
-                             activity: statsResult.activityCount,
-                             type: statsResult.status || "Permanent",
-                             status: statsResult.achievementStatus
-                         },
-                         newService: newServices,
-                         newMrc: this.commissionHelper.formatCurrency(newDetail.mrc),
-                         newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
-                         newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
-                         recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
-                         recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
-                         _rawNewSubscription: newDetail.dpp,
-                         _rawNewCommission: newDetail.commission,
-                         _rawRecurringSubscription: recurringDetail.dpp
-                     };
+                    const newDetail = statsResult.detail.new;
+                    const recurringDetail = statsResult.detail.recurring;
+                    
+                    // New Service breakdown
+                    // New Service breakdown
+                    const newServices = Object.values(statsResult.serviceMap).map((s: any) => {
+                        const n = s.detail.new;
+                        return {
+                            name: s.name,
+                            count: n.count,
+                            mrc: this.commissionHelper.formatCurrency(n.mrc),
+                            subscription: this.commissionHelper.formatCurrency(n.dpp)
+                        };
+                    });
 
-                     // Only show if active or has data
-                     if (statsResult.activityCount > 0 || recurringDetail.commission > 0 || member.is_active) {
+                    const employeeData = {
+                        name: member.name,
+                        employeeId: member.employee_id,
+                        photoProfile: member.photo_profile,
+                        achievement: {
+                            activity: statsResult.activityCount,
+                            type: statsResult.status || "Permanent",
+                            status: statsResult.achievementStatus
+                        },
+                        newService: newServices,
+                        newMrc: this.commissionHelper.formatCurrency(newDetail.mrc),
+                        newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
+                        newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
+                        recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
+                        recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
+                        _rawNewSubscription: newDetail.dpp,
+                        _rawNewCommission: newDetail.commission,
+                        _rawRecurringSubscription: recurringDetail.dpp
+                    };
+
+                    // Only show if active or has data
+                    if (statsResult.activityCount > 0 || recurringDetail.commission > 0 || member.is_active) {
                         monthEmployees.push(employeeData);
-                     }
+                    }
 
-                     // Accumulate Month Totals
-                     monthTotals.monthlyNewMrc += newDetail.mrc;
-                     monthTotals.monthlyNewSubscription += newDetail.dpp;
-                     monthTotals.monthlyNewCommission += newDetail.commission;
-                     monthTotals.monthlyRecurringSubscription += recurringDetail.dpp;
-                     monthTotals.monthlyRecurringCommission += recurringDetail.commission;
+                    // Accumulate Month Totals
+                    monthTotals.monthlyNewMrc += newDetail.mrc;
+                    monthTotals.monthlyNewSubscription += newDetail.dpp;
+                    monthTotals.monthlyNewCommission += newDetail.commission;
+                    monthTotals.monthlyRecurringSubscription += recurringDetail.dpp;
+                    monthTotals.monthlyRecurringCommission += recurringDetail.commission;
+
+                    // Accumulate Churn Deductions
+                    monthTotals.monthlyChurnMrc += statsResult.deduction.mrc;
+                    monthTotals.monthlyChurnCommission += statsResult.deduction.commission;
+                    monthTotals.monthlyChurnSubscription += statsResult.deduction.subscription;
                 }
 
                 const performance = this.commissionHelper.calculateManagerMonthlyPerformance(monthSales);
@@ -720,7 +734,12 @@ export class CommissionController {
                         recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
                         totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
                     },
-                    employee: finalMonthEmployees
+                    employee: finalMonthEmployees,
+                    deduction: {
+                        mrc: this.commissionHelper.formatCurrency(monthTotals.monthlyChurnMrc),
+                        commission: this.commissionHelper.formatCurrency(monthTotals.monthlyChurnCommission),
+                        subscription: this.commissionHelper.formatCurrency(monthTotals.monthlyChurnSubscription)
+                    }
                 };
 
                 // Accumulate Yearly
@@ -729,6 +748,9 @@ export class CommissionController {
                 yearlyTotals.yearlyNewCommission += monthTotals.monthlyNewCommission;
                 yearlyTotals.yearlyRecurringSubscription += monthTotals.monthlyRecurringSubscription;
                 yearlyTotals.yearlyRecurringCommission += monthTotals.monthlyRecurringCommission;
+                yearlyTotals.yearlyChurnMrc += monthTotals.monthlyChurnMrc;
+                yearlyTotals.yearlyChurnCommission += monthTotals.monthlyChurnCommission;
+                yearlyTotals.yearlyChurnSubscription += monthTotals.monthlyChurnSubscription;
             }
 
             const response = {
@@ -737,6 +759,11 @@ export class CommissionController {
                 yearlyNewCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyNewCommission),
                 yearlyRecurringSubscription: this.commissionHelper.formatCurrency(yearlyTotals.yearlyRecurringSubscription),
                 yearlyRecurringCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyRecurringCommission),
+                yearlyDeduction: {
+                    mrc: this.commissionHelper.formatCurrency(yearlyTotals.yearlyChurnMrc),
+                    commission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyChurnCommission),
+                    subscription: this.commissionHelper.formatCurrency(yearlyTotals.yearlyChurnSubscription)
+                },
                 monthly: monthlyData
             };
             
@@ -772,7 +799,10 @@ export class CommissionController {
                 monthlyNewSubscription: 0,
                 monthlyNewCommission: 0,
                 monthlyRecurringSubscription: 0,
-                monthlyRecurringCommission: 0
+                monthlyRecurringCommission: 0,
+                monthlyChurnMrc: 0,
+                monthlyChurnCommission: 0,
+                monthlyChurnSubscription: 0
             };
 
             const monthSales: any = {
@@ -849,6 +879,11 @@ export class CommissionController {
                     monthTotals.monthlyNewCommission += newDetail.commission;
                     monthTotals.monthlyRecurringSubscription += recurringDetail.dpp;
                     monthTotals.monthlyRecurringCommission += recurringDetail.commission;
+
+                    // Accumulate Churn Deductions
+                    monthTotals.monthlyChurnMrc += statsResult.deduction.mrc;
+                    monthTotals.monthlyChurnCommission += statsResult.deduction.commission;
+                    monthTotals.monthlyChurnSubscription += statsResult.deduction.subscription;
             }
 
             const performance = this.commissionHelper.calculateManagerMonthlyPerformance(monthSales);
@@ -888,7 +923,12 @@ export class CommissionController {
                     recurringCommission: this.commissionHelper.formatCurrency(managerAchievement.recurringCommission),
                     totalCommission: this.commissionHelper.formatCurrency(managerAchievement.totalCommission)
                 },
-                employee: finalMonthEmployees
+                employee: finalMonthEmployees,
+                deduction: {
+                    mrc: this.commissionHelper.formatCurrency(monthTotals.monthlyChurnMrc),
+                    commission: this.commissionHelper.formatCurrency(monthTotals.monthlyChurnCommission),
+                    subscription: this.commissionHelper.formatCurrency(monthTotals.monthlyChurnSubscription)
+                }
             };
             
             return c.json(this.apiResponse.success("Manager commission period data retrieved successfully", response));
