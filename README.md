@@ -19,29 +19,39 @@ open http://localhost:3000
 ### 1. Dasar Pengenaan Komisi & Penalti (Base Commission)
 
 - **Commission Basis**: Jika tipe referral pelanggan adalah `Cashback` atau `Monthly`, dasar pengenaan komisi adalah `DPP - Referral Fee`. Selain dari tipe itu, dasar komisi dihitung full dari `DPP`.
-- **Penalti Persentase (Percentage Deductions)**: Terdapat dua penalti utama yang mengurangi Dasar Komisi sebelum dikalikan persentase rate komisi:
-  1. **Late Month Penalty (Keterlambatan Bayar)**: 10% per bulan keterlambatan (`late_month`), maksimal **50%** (jika terlambat >= 5 bulan).
-  2. **Low Activity Penalty (Gagal Target)**: Khusus Sales berstatus **Permanent** pada layanan **New**, jika Activity Count < 12, maka dikenakan penalti sebesar **70%** (Ambil 30% dari DPP).
+- **Penalti Persentase (Percentage Deductions)**: Dasar Komisi dikurangi oleh penalti berikut sebelum dikalikan rate komisi:
+  1. **Late Payment Penalty (Keterlambatan Pelunasan)**:
+     - Berlaku untuk **semua jenis invoice** (New, Recurring, Upgrade, Prorate, dll).
+     - Potongan **10% per bulan** keterlambatan (`late_month`), maksimal **50%**.
+     - **Pengecualian**: Penalti ini **TIDAK BERLAKU** jika invoice ditandai sebagai disetujui (`is_approved == true`) di database.
+  2. **Performance Penalty (Gagal Target Aktivitas)**:
+     - Berlaku khusus untuk pegawai berstatus **Permanent** pada layanan tipe **New** (Pemasangan Baru).
+     - Jika Activity Count < 12, maka dikenakan penalti sebesar **70%** (Sales hanya mendapatkan komisi dari 30% Dasar Komisi).
+     - **Pengecualian**: Produk tipe **Prorate**, **Upgrade**, dan **Recurring** dibebaskan dari penalti performa ini (langsung mengambil Dasar Komisi tanpa potongan 70%).
 - **Base Commission (Dasar Komisi Akhir)**: Dihitung dengan rumus:
   `Base Commission = Commission Basis * (1 - Total Persentase Penalti)`.
-  _Contoh: Jika Sales Permanent gagal target (70%) dan pelanggan telat bayar 2 bulan (20%), maka total penalti adalah 90%. Base Commission = Basis _ 0.1.\*
 
 ### 2. Aturan Komisi Sales
 
 **A. Kategori Layanan "Home"**
 
-- **Prorate (Prorata)**: Komisi flat **10%**.
+- **Prorate (Prorata)**: Komisi flat **10%** dari Base Commission.
+- **Upgrade**: Komisi berdasarkan rate `Service ID` dan durasi kontrak. Bebas dari penalti performa 70%.
 - **Recurring (Langganan Berulang)**:
-  - Mendapatkan **1.5%** dari Base Commission.
-  - _Note_: Jika Sales berstatus **Permanent** dan failing target (< 12 activity), maka Base Commission-nya otomatis menjadi 30% dari DPP (lihat Point 1).
-- **Upgrade & New (Baru)**: Persentase komisi ditentukan dari `Service ID` dan lama masa kontrak (`months`):
-  - **Nusafiber (BFLITE)**: Kontrak 1 bln (28.38%), >= 6 bln (6.55%), >= 12 bln (5.09%)
-  - **Home100, HomeSTD100**: Kontrak 1 bln (28.57%), >= 6 bln (5.95%), >= 12 bln (4.76%)
-  - **HomeADV200, HomeADV**: Kontrak 1 bln (27.78%), >= 6 bln (5.56%), >= 12 bln (4.63%)
-  - **HomePrem300**: Kontrak 1 bln (31.25%), >= 6 bln (6.25%), >= 12 bln (5.21%)
-  - **NusaSelecta (NFSP030, NFSP100)**: Kontrak < 6 bln (20.00%), >= 6 bln (5.56%), >= 12 bln (4.44%)
-  - **NusaSelecta (NFSP200)**: Kontrak < 6 bln (26.00%), >= 6 bln (6.00%), >= 12 bln (4.67%)
-  - _Note_: Penalti 30% untuk Sales Permanent dengan Activity < 12 sudah dihitung pada **Base Commission** (Point 1).
+  - Bebas dari penalti performa 70%.
+  - Persentase Komisi:
+    - **0.5%**: Jika Sales berstatus **Permanent** dan gagal target (< 12 activity).
+    - **1.5%**: Jika Sales berstatus **Probation** ATAU Sales Permanent yang **capai target** (>= 12 activity).
+- **New (Pemasangan Baru)**: Persentase komisi ditentukan dari `Service ID` dan lama masa kontrak (`months`). Dikenakan penalti performa 70% jika Sales Permanent gagal target.
+
+**Tabel Rate Komisi (New & Upgrade):**
+
+- **Nusafiber (BFLITE)**: 1 bln (28.38%), 6 bln (6.55%), 12 bln (5.09%)
+- **NusaFiber (NFSP030, NFSP100)**: < 6 bln (20.00%), 6 bln (5.56%), 12 bln (4.44%)
+- **NusaFiber (NFSP200)**: < 6 bln (26.00%), 6 bln (6.00%), 12 bln (4.67%)
+- **Home100, HomeSTD100**: 1 bln (28.57%), 6 bln (5.95%), 12 bln (4.76%)
+- **HomeADV200, HomeADV**: 1 bln (27.78%), 6 bln (5.56%), 12 bln (4.63%)
+- **HomePrem300**: 1 bln (31.25%), 6 bln (6.25%), 12 bln (5.21%)
 
 **B. Kategori Layanan Lainnya ("Setup" & "Alat")**
 
@@ -54,16 +64,31 @@ _Total Pembayaran Komisi Sales (per item) = `Base Commission` x `Persentase Komi
 
 ---
 
-### 3. Perhitungan Activity Count (Pencapaian Aktivitas Penjualan Baru)
+### 3. Perhitungan Activity Count (Net Activity)
 
-Pencapaian "Activity Count" didasarkan khusus pada produk tipe baru (New).
+Pencapaian "Activity Count" didasarkan khusus pada produk tipe baru (New) setelah dikurangi **Churn**.
 
-- Layanan standar: 1 Pelanggan Baru = 1 Activity Count.
-- Layanan **NusaSelecta (selain NFSP200)**: Dihitung secara pasang. Setengah pelanggan dibulatkan ke bawah. Artinya **2 Pelanggan Baru = 1 Activity Count**.
+- **Gross Count**:
+  - Layanan standar: 1 Pelanggan Baru = 1 Activity Count.
+  - Layanan **NusaSelecta (selain NFSP200)**: 2 Pelanggan Baru = 1 Activity Count (Dihitung per pasang).
+- **Deduction (Churn)**:
+  - Setiap pelanggan yang berhenti berlangganan (Churn) dan tidak disetujui pembatalannya akan **mengurangi** Activity Count bulan berjalan.
+- **Activity Count (Net)**: `Gross Count - Churn Count`. Hasil inilah yang menentukan Achievement Goal dan Rate Recurring.
 
 ---
 
-### 4. Level Prestasi (Achievement) & Skema Bonus Sales
+### 4. Churn & Deductions
+
+Setiap record Churn yang masuk (dan bukan `is_approved`) akan mengurangi total pendapatan sales pada periode tersebut:
+
+- **Count**: Mengurangi Activity Count (mempengaruhi target).
+- **MRC**: Mengurangi total MRC bulanan.
+- **Commission**: Mengurangi total komisi (Dihitung setara rate 'New' pada target 12).
+- **Subscription (DPP)**: Mengurangi total volume penjualan (DPP).
+
+---
+
+### 5. Level Prestasi (Achievement) & Skema Bonus Sales
 
 **A. Status Pegawai Permanent**
 
@@ -89,7 +114,7 @@ Pencapaian "Activity Count" didasarkan khusus pada produk tipe baru (New).
 
 ---
 
-### 5. Komisi & Performa Manager Area
+### 6. Komisi & Performa Manager Area
 
 **A. Persentase Performa Bulanan Manager (Achievement Percentage)**
 
@@ -123,6 +148,7 @@ Dihitung flat bulanan sebagai overriding insentif pendapatan pasif:
 - Apabila Manager berstatus **Tidak Capai Target**, Rate Recurring diturunkan menjadi **0.50%** dari total pengumpulan langganan anggota timnya.
 
 _Total Komisi Manager akhir bulan = `Total Overriding Komisi New` + `Komisi Overriding Recurring`._
+_Semua perhitungan Manager menggunakan angka **NET** (setelah dikurangi churn dan penalti masing-masing anggota tim)._
 
 ---
 
