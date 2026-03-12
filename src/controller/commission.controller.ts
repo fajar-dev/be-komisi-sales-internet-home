@@ -65,6 +65,7 @@ export class CommissionController {
                 const churnNewCounts: Record<string, number> = { 'Home': 0, 'Nusafiber': 0, 'NusaSelecta': 0 };
 
                 churnRows.forEach((row: any) => {
+                    if (row.is_approved) return;
                     const sName = this.commissionHelper.getServiceName(row.service_id);
                     netTotalNewCount--;
                     if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
@@ -85,7 +86,8 @@ export class CommissionController {
                     const dpp = this.commissionHelper.toNum(row.dpp);
                     const referralFee = this.commissionHelper.toNum(row.referral_fee);
                     const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') ? (dpp - referralFee) : dpp;
-                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
+                    const typeForPenalty = (row.category === 'alat') ? 'alat' : (row.category === 'setup' ? 'setup' : (row.type === 'prorata' ? 'prorate' : (row.type || 'recurring')));
+                    const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month, row.is_approved, typeForPenalty);
 
                     let type = row.type || 'recurring';
                     if (row.category === 'alat') type = 'alat';
@@ -140,7 +142,9 @@ export class CommissionController {
                 // 4. Subtract Churn
                 let totalChurnMrc = 0;
                 let totalChurnCommission = 0;
+                let totalChurnSubscription = 0;
                 churnRows.forEach((row: any) => {
+                    if (row.is_approved) return;
                     const sName = this.commissionHelper.getServiceName(row.service_id);
                     const price = this.commissionHelper.toNum(row.price);
                     const periodVal = Math.max(this.commissionHelper.toNum(row.period), 1);
@@ -150,6 +154,7 @@ export class CommissionController {
                     
                     totalChurnMrc += mrc;
                     totalChurnCommission += commission;
+                    totalChurnSubscription += price;
 
                     stats.count--;
                     stats.commission -= commission;
@@ -220,6 +225,7 @@ export class CommissionController {
                         deduction: {
                             mrc: this.commissionHelper.formatCurrency(totalChurnMrc),
                             commission: this.commissionHelper.formatCurrency(totalChurnCommission),
+                            subscription: this.commissionHelper.formatCurrency(totalChurnSubscription),
                             new: Object.entries(churnNewCounts).map(([name, count]) => ({ name, count }))
                         },
                         service
@@ -233,6 +239,7 @@ export class CommissionController {
             let yearlyTotalCommission = 0;
             let yearlyChurnMrc = 0;
             let yearlyChurnCommission = 0;
+            let yearlyChurnSubscription = 0;
             const yearlyChurnNewCounts: Record<string, number> = { 'Home': 0, 'Nusafiber': 0, 'NusaSelecta': 0 };
             const yearlyDetail = this.commissionHelper.initDetail();
             const yearlyServiceMap: any = this.commissionHelper.initServiceMap();
@@ -254,6 +261,7 @@ export class CommissionController {
                 yearlyStats.dpp += this.commissionHelper.toNum(mData.dpp);
                 yearlyChurnMrc += this.commissionHelper.toNum(mData.deduction.mrc);
                 yearlyChurnCommission += this.commissionHelper.toNum(mData.deduction.commission);
+                yearlyChurnSubscription += this.commissionHelper.toNum(mData.deduction.subscription);
                 
                 if (mData.deduction.new && Array.isArray(mData.deduction.new)) {
                     mData.deduction.new.forEach((item: { name: string, count: number }) => {
@@ -323,6 +331,7 @@ export class CommissionController {
                 deduction: {
                     mrc: this.commissionHelper.formatCurrency(yearlyChurnMrc),
                     commission: this.commissionHelper.formatCurrency(yearlyChurnCommission),
+                    subscription: this.commissionHelper.formatCurrency(yearlyChurnSubscription),
                     new: Object.entries(yearlyChurnNewCounts).map(([name, count]) => ({ name, count }))
                 },
                 service: yearlyService,
@@ -389,6 +398,7 @@ export class CommissionController {
             const churnNewCounts: Record<string, number> = { 'Home': 0, 'Nusafiber': 0, 'NusaSelecta': 0 };
 
             churnRows.forEach((row: any) => {
+                if (row.is_approved) return;
                 const sName = this.commissionHelper.getServiceName(row.service_id);
                 netTotalNewCount--;
                 if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
@@ -409,12 +419,12 @@ export class CommissionController {
                 const dpp = this.commissionHelper.toNum(row.dpp);
                 const referralFee = this.commissionHelper.toNum(row.referral_fee);
                 const commissionBasis = (row.referral_type === 'Cashback' || row.referral_type === 'Monthly') ? (dpp - referralFee) : dpp;
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
-
                 let type = row.type || 'recurring';
                 if (row.category === 'alat') type = 'alat';
                 else if (row.category === 'setup') type = 'setup';
                 if (type === 'prorata') type = 'prorate';
+
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month, row.is_approved, type);
 
                 const months = Number(row.month || 1);
                 const hasSetup = customerSetupMap[row.customer_id] || false;
@@ -463,7 +473,9 @@ export class CommissionController {
             // 4. Process churn amounts subtraction
             let totalChurnMrc = 0;
             let totalChurnCommission = 0;
+            let totalChurnSubscription = 0;
             churnRows.forEach((row: any) => {
+                if (row.is_approved) return;
                 const sName = this.commissionHelper.getServiceName(row.service_id);
                 const price = this.commissionHelper.toNum(row.price);
                 const periodVal = Math.max(this.commissionHelper.toNum(row.period), 1);
@@ -473,6 +485,7 @@ export class CommissionController {
                 
                 totalChurnMrc += mrc;
                 totalChurnCommission += commission;
+                totalChurnSubscription += price;
 
                 stats.count--;
                 stats.commission -= commission;
@@ -535,6 +548,7 @@ export class CommissionController {
                 deduction: {
                     mrc: this.commissionHelper.formatCurrency(totalChurnMrc),
                     commission: this.commissionHelper.formatCurrency(totalChurnCommission),
+                    subscription: this.commissionHelper.formatCurrency(totalChurnSubscription),
                     new: Object.entries(churnNewCounts).map(([name, count]) => ({ name, count }))
                 },
                 service

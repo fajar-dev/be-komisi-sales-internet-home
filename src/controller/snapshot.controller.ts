@@ -71,6 +71,7 @@ export class SnapshotController {
 
             // Adjust by churn
             churnRows.forEach((row: any) => {
+                if (row.is_approved) return;
                 const sName = this.commissionHelper.getServiceName(row.service_id);
                 totalNewCount--;
                 if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
@@ -111,7 +112,8 @@ export class SnapshotController {
                     ? (dpp - referralFee) 
                     : dpp;
 
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
+                const typeForPenalty = (row.category === 'alat') ? 'alat' : (row.category === 'setup' ? 'setup' : (row.type === 'prorata' ? 'prorate' : (row.type || 'recurring')));
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month, row.is_approved, typeForPenalty);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
@@ -259,13 +261,13 @@ export class SnapshotController {
                 ? (dpp - referralFee) 
                 : dpp;
 
-            const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
-            
             let type = row.type;
             if (row.category === 'alat') type = 'alat';
             else if (row.category === 'setup') type = 'setup';
             else if (!type) type = 'recurring';
             if (type === 'prorata') type = 'prorate';
+
+            const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month, row.is_approved, type);
 
             // To apply the 30% rule correctly, we need the context of the whole month's activity
             const invoiceDate = new Date(row.invoice_date);
@@ -300,6 +302,7 @@ export class SnapshotController {
             });
 
             churnRows.forEach((c: any) => {
+                if (c.is_approved) return;
                 const sName = this.commissionHelper.getServiceName(c.service_id);
                 totalNewCount--;
                 if (sName === 'NusaSelecta' && c.service_id !== 'NFSP200') nusaSelectaCount--;
@@ -412,7 +415,8 @@ export class SnapshotController {
                     ? (dpp - referralFee) 
                     : dpp;
 
-                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month);
+                const typeForPenalty = (row.category === 'alat') ? 'alat' : (row.category === 'setup' ? 'setup' : (row.type === 'prorata' ? 'prorate' : (row.type || 'recurring')));
+                const effectiveDpp = this.commissionHelper.applyLateMonthPenalty(commissionBasis, row.late_month, row.is_approved, typeForPenalty);
                 
                 let type = row.type;
                 if (row.category === 'alat') type = 'alat';
@@ -422,7 +426,7 @@ export class SnapshotController {
 
                 const { commission } = this.commissionHelper.calculateCommission(
                     row,
-                    effectiveDpp,
+                    commissionBasis,
                     months,
                     row.service_id,
                     row.category,
@@ -471,7 +475,9 @@ export class SnapshotController {
             const churnRows = await ChurnService.getChurnByEmployeeId(employeeId as string, startDate, endDate);
             const employeeStatus = await this.employeeService.getStatusByPeriod(employeeId as string, startDate, endDate);
 
-            const result = churnRows.map(row => {
+            const result = churnRows
+                .filter(row => !row.is_approved)
+                .map(row => {
                 const price = Number(row.price);
                 const periodVal = Math.max(Number(row.period), 1);
                 const mrc = price / periodVal;

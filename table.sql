@@ -31,6 +31,7 @@ CREATE TABLE snapshot(
     referral_type ENUM('OTC','Cashback', 'Monthly') NULL DEFAULT NULL,
     type ENUM('new','prorate','upgrade','recurring') NULL DEFAULT NULL,
     is_adjustment BOOLEAN NOT NULL DEFAULT FALSE,
+    is_approved BOOLEAN NOT NULL DEFAULT FALSE,
     INDEX idx_paid_date(paid_date),
     INDEX idx_service_id(service_id),
     INDEX idx_sales_id(sales_id),
@@ -90,6 +91,7 @@ CREATE TABLE churn (
     price DECIMAL(18,2) NULL,
     sales_id VARCHAR(20) NULL,
     manager_id VARCHAR(20) NULL,
+    is_approved BOOLEAN NOT NULL DEFAULT FALSE,
     INDEX idx_unregistration_date(unregistration_date),
     INDEX idx_sales_id(sales_id)
 );

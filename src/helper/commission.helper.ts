@@ -80,11 +80,13 @@ export class CommissionHelper {
             data: data
         };
     }
-    // Rule: Late Payment Penalty - potong DPP berdasarkan late_month
-    // late_month 1 = 10%, 2 = 20%, ..., 5+ = 50% (maks)
-    static applyLateMonthPenalty(dpp: number, lateMonth: number | null | undefined): number {
-        if (!lateMonth || lateMonth <= 0) return dpp;
-        const deductPct = Math.min(lateMonth * 0.1, 0.5); // max 50%
+    static applyLateMonthPenalty(dpp: number, lateMonth: number | null | undefined, isApproved: any = false, type: string = ''): number {
+        // Rule: Late Payment Penalty - 10% per month, max 50%
+        // Skip only for approved invoices or if no late month
+        const isActuallyApproved = isApproved === true || isApproved === 1 || isApproved === '1' || isApproved === 'true';
+        if (isActuallyApproved || !lateMonth || lateMonth <= 0) return dpp;
+        
+        const deductPct = Math.min(Number(lateMonth) * 0.1, 0.5); // max 50%
         return dpp * (1 - deductPct);
     }
 
@@ -105,14 +107,14 @@ export class CommissionHelper {
         let commissionPercentage = 0;
         let penaltyPct = 0;
 
-        // Rule: Late Payment Penalty - 10% per month, max 50%
-        if (lateMonth > 0) {
-            penaltyPct += Math.min(lateMonth * 0.1, 0.5);
-        }
+        // 1. Apply Late Payment Penalty to get the effective base commission basis (effectiveDpp)
+        // This handles: 10% per month, max 50%, skip if approved, skip if recurring
+        const effectiveDpp = this.applyLateMonthPenalty(dpp, lateMonth, row.is_approved, type);
 
         if (category === 'home') {
-            // Rule: Base Commission is only 30% (Penalty 70%) if Permanent & Low Activity
-            if (status === 'Permanent' && activityCount < 12) {
+            // Rule: Base Commission is only 30% (Penalty 70% of effectiveDpp) if Permanent & Low Activity
+            // Skip for everything except 'new' type
+            if (status === 'Permanent' && activityCount < 12 && type === 'new') {
                 penaltyPct += 0.7;
             }
 
@@ -131,9 +133,13 @@ export class CommissionHelper {
                     }
                 }
             } 
-            // Rule: Recurring Commission -> 1.5%
+            // Rule: Recurring Commission -> 0.5% (Permanent low activity) or 1.5% (Probation/Permanent high activity)
             else if (type === 'recurring') {
-                commissionPercentage = 1.5;
+                if (status === 'Permanent' && activityCount < 12) {
+                    commissionPercentage = 0.5;
+                } else {
+                    commissionPercentage = 1.5;
+                }
             } 
             // Rule: New Installation Commission -> Based on defined rates
             else if (type === 'new') {
@@ -160,8 +166,8 @@ export class CommissionHelper {
             }
         }
 
-        // Base Commission = dpp - sum of all percentage penalties
-        const baseCommission = Math.max(0, dpp * (1 - penaltyPct));
+        // Calculate final base commission
+        const baseCommission = Math.max(0, effectiveDpp * (1 - penaltyPct));
         const commission = baseCommission * (commissionPercentage / 100);
         return { commission, commissionPercentage, baseCommission };
     }
@@ -203,6 +209,7 @@ export class CommissionHelper {
         let netNusaSelectaCount = nusaSelectaCount;
 
         churnRows.forEach((row: any) => {
+            if (row.is_approved) return;
             const sName = this.getServiceName(row.service_id);
             netTotalNewCount--;
             if (sName === 'NusaSelecta' && row.service_id !== 'NFSP200') {
@@ -226,14 +233,13 @@ export class CommissionHelper {
                 ? (dpp - referralFee) 
                 : dpp;
 
-            const effectiveDpp = this.applyLateMonthPenalty(commissionBasis, row.late_month);
-
             let type = row.type;
             if (row.category === 'alat') type = 'alat';
             else if (row.category === 'setup') type = 'setup';
             else if (!type) type = 'recurring';
-
             if (type === 'prorata') type = 'prorate';
+
+            const effectiveDpp = this.applyLateMonthPenalty(commissionBasis, row.late_month, row.is_approved, type);
 
             const months = Number(row.month || 1);
             const hasSetup = customerSetupMap[row.customer_id] || false; 
