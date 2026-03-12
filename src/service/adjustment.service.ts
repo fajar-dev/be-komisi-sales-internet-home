@@ -20,9 +20,7 @@ export class AdjustmentService {
                 s.customer_company as companyName,
                 s.customer_id as customerId,
                 s.service_group as serviceGroupId,
-                s.service_name as serviceName,
-                s.invoice_number as invoiceNumber,
-                s.invoice_order as invoiceOrder
+                s.service_name as serviceName
             FROM adjustment a
             LEFT JOIN employee e ON a.employee_id = e.employee_id
             LEFT JOIN snapshot s ON a.ai = s.ai
