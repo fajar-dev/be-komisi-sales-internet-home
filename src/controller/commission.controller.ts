@@ -1042,4 +1042,195 @@ export class CommissionController {
             return c.json(this.apiResponse.error("An error occurred", error.message), 500);
         }
     }
+
+    async salesSummary(c: Context) {
+        try {
+            const { month, year, hide, manager } = c.req.query();
+            
+            if (!month || !year) {
+                return c.json(this.apiResponse.error("Missing month or year parameter"), 400);
+            }
+
+            const monthInt = parseInt(month as string);
+            const yearInt = parseInt(year as string);
+            
+            // Default hide is true (masked). If hide is 'false', then show data.
+            const isMasked = hide === undefined || hide === 'true' || hide === ''; 
+
+            const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
+
+            let team: any[] = [];
+            if (manager && manager !== 'null') {
+                team = await this.employeeService.getHierarchy(manager as string, "", false, false);
+            } else {
+                team = await this.employeeService.getAllActiveStaff();
+            }
+
+            const data: any[] = [];
+
+            for (const member of team) {
+                if (member.job_position !== 'Account Manager') continue;
+
+                const [rows, churnRows, status] = await Promise.all([
+                    this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate),
+                    this.churnService.getChurnByEmployeeId(member.employee_id as string, startDate, endDate),
+                    this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate)
+                ]);
+
+                if (!status) continue;
+
+                const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status, churnRows);
+
+                const d = statsResult.detail;
+                const combinedNewMrc = d.new.mrc + d.prorate.mrc + d.upgrade.mrc;
+                const combinedNewDpp = d.new.dpp + d.prorate.dpp + d.upgrade.dpp;
+                const combinedNewCommission = d.new.commission + d.prorate.commission + d.upgrade.commission;
+
+                const otherDpp = d.alat.dpp + d.setup.dpp;
+                const otherCommission = d.alat.commission + d.setup.commission;
+
+                const bonus = CommissionHelper.calculateBonus(statsResult.activityCount);
+                const totalCommission = combinedNewCommission + d.recurring.commission + otherCommission + bonus;
+                
+                const format = (val: number) => isMasked ? "***" : this.commissionHelper.formatCurrency(val);
+
+                data.push({
+                    name: member.name,
+                    employeeId: member.employee_id,
+                    photoProfile: member.photo_profile,
+                    achievement: statsResult.achievementStatus,
+                    newService: statsResult.activityCount,
+                    newMrc: format(combinedNewMrc),
+                    newSubscription: format(combinedNewDpp),
+                    newCommission: format(combinedNewCommission),
+                    recurringSubscription: format(d.recurring.dpp),
+                    recurringCommission: format(d.recurring.commission),
+                    otherSubscription: format(otherDpp),
+                    otherCommission: format(otherCommission),
+                    bonus: format(bonus),
+                    totalCommission: format(totalCommission)
+                });
+            }
+
+            return c.json(this.apiResponse.success("Sales summary retrieved successfully", data));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("An error occurred", error.message), 500);
+        }
+    }
+
+    async managerSummary(c: Context) {
+        try {
+            const { month, year, hide } = c.req.query();
+            
+            if (!month || !year) {
+                return c.json(this.apiResponse.error("Missing month or year parameter"), 400);
+            }
+
+            const monthInt = parseInt(month as string);
+            const yearInt = parseInt(year as string);
+            
+            // Default hide is true (masked). If hide is 'false', then show data.
+            const isMasked = hide === undefined || hide === 'true' || hide === ''; 
+
+            const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
+
+            const managers = await this.employeeService.getAllManagers();
+            const data: any[] = [];
+
+            for (const manager of managers) {
+                const team = await this.employeeService.getHierarchy(manager.employee_id as string, "", false, false);
+                
+                const monthTotals = {
+                    monthlyNewMrc: 0,
+                    monthlyNewSubscription: 0,
+                    monthlyNewCommission: 0,
+                    monthlyRecurringSubscription: 0,
+                    monthlyRecurringCommission: 0,
+                    monthlyOtherSubscription: 0,
+                    monthlyOtherCommission: 0,
+                    monthlyTotalCommission: 0
+                };
+
+                const monthSales: any = {
+                    Permanent: 0,
+                    Probation: 0,
+                    total: 0,
+                    activity: 0
+                };
+
+                for (const member of team) {
+                    const [rows, churnRows, status] = await Promise.all([
+                        this.snapshotService.getSnapshotBySales(member.employee_id as string, startDate, endDate),
+                        this.churnService.getChurnByEmployeeId(member.employee_id as string, startDate, endDate),
+                        this.employeeService.getStatusByPeriod(member.employee_id as string, startDate, endDate)
+                    ]);
+
+                    if (!status) continue;
+
+                    const statsResult: any = this.commissionHelper.calculateEmployeeMonthlyStats(rows, status, churnRows);
+                    
+                    const type = statsResult.status || "Permanent";
+                    if (type === 'Permanent') {
+                        monthSales.Permanent++;
+                    } else {
+                        monthSales.Probation++;
+                    }
+                    monthSales.total++;
+                    monthSales.activity += statsResult.activityCount;
+
+                    const d = statsResult.detail;
+                    const combinedNewMrc = d.new.mrc + d.prorate.mrc + d.upgrade.mrc;
+                    const combinedNewDpp = d.new.dpp + d.prorate.dpp + d.upgrade.dpp;
+                    const combinedNewCommission = d.new.commission + d.prorate.commission + d.upgrade.commission;
+                    const otherDpp = d.alat.dpp + d.setup.dpp;
+                    const otherCommission = d.alat.commission + d.setup.commission;
+                    const bonus = CommissionHelper.calculateBonus(statsResult.activityCount);
+                    const totalCommission = combinedNewCommission + d.recurring.commission + otherCommission + bonus;
+
+                    monthTotals.monthlyNewMrc += combinedNewMrc;
+                    monthTotals.monthlyNewSubscription += combinedNewDpp;
+                    monthTotals.monthlyNewCommission += combinedNewCommission;
+                    monthTotals.monthlyRecurringSubscription += d.recurring.dpp;
+                    monthTotals.monthlyRecurringCommission += d.recurring.commission;
+                    monthTotals.monthlyOtherSubscription += otherDpp;
+                    monthTotals.monthlyOtherCommission += otherCommission;
+                    monthTotals.monthlyTotalCommission += totalCommission;
+                }
+
+                const performance = this.commissionHelper.calculateManagerMonthlyPerformance(monthSales);
+                const managerAchievement = this.commissionHelper.calculateManagerCommission(
+                    performance.percentageVal,
+                    monthTotals.monthlyNewCommission,
+                    monthTotals.monthlyRecurringSubscription,
+                    performance.status
+                );
+
+                const format = (val: number) => isMasked ? "***" : this.commissionHelper.formatCurrency(val);
+
+                data.push({
+                    name: manager.name,
+                    employeeId: manager.employee_id,
+                    photoProfile: manager.photo_profile,
+                    team: team.length,
+                    percentage: performance.percentage,
+                    status: performance.status,
+                    monthlyNewMrc: format(monthTotals.monthlyNewMrc),
+                    monthlyNewSubscription: format(monthTotals.monthlyNewSubscription),
+                    monthlyNewCommission: format(monthTotals.monthlyNewCommission),
+                    monthlyRecurringSubscription: format(monthTotals.monthlyRecurringSubscription),
+                    monthlyRecurringCommission: format(monthTotals.monthlyRecurringCommission),
+                    monthlyOtherSubscription: format(monthTotals.monthlyOtherSubscription),
+                    monthlyOtherCommission: format(monthTotals.monthlyOtherCommission),
+                    monthlyTotalCommission: format(monthTotals.monthlyTotalCommission),
+                    managerNewCommission: format(managerAchievement.newCommission),
+                    managerRecurringCommission: format(managerAchievement.recurringCommission),
+                    managerTotalCommission: format(managerAchievement.totalCommission)
+                });
+            }
+
+            return c.json(this.apiResponse.success("Manager summary retrieved successfully", data));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("An error occurred", error.message), 500);
+        }
+    }
 }

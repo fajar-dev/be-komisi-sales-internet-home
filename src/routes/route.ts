@@ -30,13 +30,16 @@ route.get('/employee/:id/hierarchy', authMiddleware, (c) => new EmployeeControll
 route.get('/sales/:id/commission', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().salesCommission(c));
 route.get('/sales/:id/commission/period', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().salesCommissionPeriod(c));
 route.get('/sales/:id/churn', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesChurn(c));
+route.get('/sales/:id/invoice', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesInvoice(c));
+route.get('/sales/:id/invoice/:ai', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesSnapshotByAi(c));
+route.get('/sales/summary', (c) => new CommissionController().salesSummary(c));
+route.get('/manager/summary', (c) => new CommissionController().managerSummary(c));
 
 route.get('/manager/:id/commission', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommission(c));
 route.get('/manager/:id/commission/period', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommissionPeriod(c));
-
-route.get('/sales/:id/invoice', (c) => new SnapshotController().salesInvoice(c));
-route.get('/sales/:id/invoice/:ai', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesSnapshotByAi(c));
 route.get('/manager/:id/team', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().managerTeamCommission(c));
+
+
 
 route.get('/adjustment', authMiddleware, (c) => new AdjustmentController().getAdjustment(c));
 route.post('/adjustment', authMiddleware, (c) => new AdjustmentController().insertAdjustment(c));

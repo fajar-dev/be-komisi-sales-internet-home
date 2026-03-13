@@ -226,4 +226,20 @@ export class EmployeeService {
         );
     }
 
+    static async getAllActiveStaff() {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT * FROM employee WHERE is_active = true AND has_dashboard = true`
+        );
+        return rows;
+    }
+
+    static async getAllManagers() {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT DISTINCT m.* 
+             FROM employee s
+             JOIN employee m ON s.manager_id = m.id
+             WHERE m.is_active = true AND m.has_dashboard = true`
+        );
+        return rows;
+    }
 }
