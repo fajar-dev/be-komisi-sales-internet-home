@@ -1,12 +1,14 @@
 import { EmployeeCrawl } from "./employee.crawl";
 import { SnapshotCrawl } from "./snapshot.crawl";
 import { ChurnCrawl } from "./churn.crawl";
+import { GoogleSheetCrawl } from "./google-sheet.crawl";
 
 class Crawl {
     constructor(
         private employeeCrawl = new EmployeeCrawl(),
         private snapshotCrawl = new SnapshotCrawl(),
-        private churnCrawl = new ChurnCrawl()
+        private churnCrawl = new ChurnCrawl(),
+        private googleSheetCrawl = new GoogleSheetCrawl()
     ) {}
     
     async run() {
@@ -16,6 +18,10 @@ class Crawl {
             console.log("Starting the snapshot crawl...");
             await this.snapshotCrawl.crawlInvoice();
             console.log("Snapshot crawl finished.");
+
+            console.log("Starting the Google Sheet override crawl...");
+            await this.googleSheetCrawl.crawlSnapshotOverride();
+            console.log("Google Sheet override crawl finished.");
 
             console.log("Starting the churn crawl...");
             await this.churnCrawl.crawlChurn();

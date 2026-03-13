@@ -192,4 +192,41 @@ export class SnapshotService {
             console.log(`[Sync] Database local sudah sinkron dengan NCIIC. Tidak ada data selisih.`);
         }
     }
+
+    static async updateFromSheet(ai: string | number, data: any) {
+        const updateFields: string[] = [];
+        const params: any[] = [];
+
+        if (data.referralFee !== undefined) {
+            updateFields.push('referral_fee = ?');
+            params.push(data.referralFee);
+        }
+        if (data.referralType !== undefined) {
+            updateFields.push('referral_type = ?');
+            params.push(data.referralType);
+        }
+        if (data.isApproved !== undefined) {
+            updateFields.push('is_approved = ?');
+            params.push(data.isApproved ? 1 : 0);
+        }
+        if (data.type !== undefined) {
+            updateFields.push('type = ?');
+            params.push(data.type);
+        }
+        if (data.lateMonth !== undefined) {
+            updateFields.push('late_month = ?');
+            params.push(data.lateMonth);
+        }
+
+        if (updateFields.length === 0) return null;
+
+        // Always set is_adjustment to 1 when updated from sheet
+        updateFields.push('is_adjustment = 1');
+
+        const sql = `UPDATE snapshot SET ${updateFields.join(', ')} WHERE ai = ?`;
+        params.push(ai);
+
+        const [result] = await pool.query(sql, params);
+        return result;
+    }
 }

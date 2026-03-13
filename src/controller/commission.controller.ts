@@ -214,6 +214,20 @@ export class CommissionController {
                         mrc: this.commissionHelper.formatCurrency(stats.mrc),
                         dpp: this.commissionHelper.formatCurrency(stats.dpp),
                         count: stats.count,
+                        summary: {
+                            new: {
+                                dpp: this.commissionHelper.formatCurrency(detail.new.dpp + detail.prorate.dpp + detail.upgrade.dpp),
+                                commission: this.commissionHelper.formatCurrency(detail.new.commission + detail.prorate.commission + detail.upgrade.commission)
+                            },
+                            recurring: {
+                                dpp: this.commissionHelper.formatCurrency(detail.recurring.dpp),
+                                commission: this.commissionHelper.formatCurrency(detail.recurring.commission)
+                            },
+                            other: {
+                                dpp: this.commissionHelper.formatCurrency(detail.alat.dpp + detail.setup.dpp),
+                                commission: this.commissionHelper.formatCurrency(detail.alat.commission + detail.setup.commission)
+                            }
+                        },
                         detail: {
                             new: { ...detail.new, commission: this.commissionHelper.formatCurrency(detail.new.commission), mrc: this.commissionHelper.formatCurrency(detail.new.mrc), dpp: this.commissionHelper.formatCurrency(detail.new.dpp) },
                             upgrade: { ...detail.upgrade, commission: this.commissionHelper.formatCurrency(detail.upgrade.commission), mrc: this.commissionHelper.formatCurrency(detail.upgrade.mrc), dpp: this.commissionHelper.formatCurrency(detail.upgrade.dpp) },
@@ -320,6 +334,20 @@ export class CommissionController {
                 mrc: this.commissionHelper.formatCurrency(yearlyStats.mrc),
                 dpp: this.commissionHelper.formatCurrency(yearlyStats.dpp),
                 count: yearlyStats.count,
+                summary: {
+                    new: {
+                        dpp: this.commissionHelper.formatCurrency(yearlyDetail.new.dpp + yearlyDetail.prorate.dpp + yearlyDetail.upgrade.dpp),
+                        commission: this.commissionHelper.formatCurrency(yearlyDetail.new.commission + yearlyDetail.prorate.commission + yearlyDetail.upgrade.commission)
+                    },
+                    recurring: {
+                        dpp: this.commissionHelper.formatCurrency(yearlyDetail.recurring.dpp),
+                        commission: this.commissionHelper.formatCurrency(yearlyDetail.recurring.commission)
+                    },
+                    other: {
+                        dpp: this.commissionHelper.formatCurrency(yearlyDetail.alat.dpp + yearlyDetail.setup.dpp),
+                        commission: this.commissionHelper.formatCurrency(yearlyDetail.alat.commission + yearlyDetail.setup.commission)
+                    }
+                },
                 detail: {
                     new: { ...yearlyDetail.new, commission: this.commissionHelper.formatCurrency(yearlyDetail.new.commission), mrc: this.commissionHelper.formatCurrency(yearlyDetail.new.mrc), dpp: this.commissionHelper.formatCurrency(yearlyDetail.new.dpp) },
                     upgrade: { ...yearlyDetail.upgrade, commission: this.commissionHelper.formatCurrency(yearlyDetail.upgrade.commission), mrc: this.commissionHelper.formatCurrency(yearlyDetail.upgrade.mrc), dpp: this.commissionHelper.formatCurrency(yearlyDetail.upgrade.dpp) },
@@ -537,6 +565,20 @@ export class CommissionController {
                 mrc: this.commissionHelper.formatCurrency(stats.mrc),
                 dpp: this.commissionHelper.formatCurrency(stats.dpp),
                 count: stats.count,
+                summary: {
+                    new: {
+                        dpp: this.commissionHelper.formatCurrency(detail.new.dpp + detail.prorate.dpp + detail.upgrade.dpp),
+                        commission: this.commissionHelper.formatCurrency(detail.new.commission + detail.prorate.commission + detail.upgrade.commission)
+                    },
+                    recurring: {
+                        dpp: this.commissionHelper.formatCurrency(detail.recurring.dpp),
+                        commission: this.commissionHelper.formatCurrency(detail.recurring.commission)
+                    },
+                    other: {
+                        dpp: this.commissionHelper.formatCurrency(detail.alat.dpp + detail.setup.dpp),
+                        commission: this.commissionHelper.formatCurrency(detail.alat.commission + detail.setup.commission)
+                    }
+                },
                 detail: {
                     new: { ...detail.new, commission: this.commissionHelper.formatCurrency(detail.new.commission), mrc: this.commissionHelper.formatCurrency(detail.new.mrc), dpp: this.commissionHelper.formatCurrency(detail.new.dpp) },
                     upgrade: { ...detail.upgrade, commission: this.commissionHelper.formatCurrency(detail.upgrade.commission), mrc: this.commissionHelper.formatCurrency(detail.upgrade.mrc), dpp: this.commissionHelper.formatCurrency(detail.upgrade.dpp) },
@@ -594,6 +636,10 @@ export class CommissionController {
                 yearlyNewCommission: 0,
                 yearlyRecurringSubscription: 0,
                 yearlyRecurringCommission: 0,
+                yearlyOtherSubscription: 0,
+                yearlyOtherCommission: 0,
+                yearlyBonus: 0,
+                yearlyTotalCommission: 0,
                 yearlyChurnMrc: 0,
                 yearlyChurnCommission: 0,
                 yearlyChurnSubscription: 0
@@ -610,6 +656,10 @@ export class CommissionController {
                     monthlyNewCommission: 0,
                     monthlyRecurringSubscription: 0,
                     monthlyRecurringCommission: 0,
+                    monthlyOtherSubscription: 0,
+                    monthlyOtherCommission: 0,
+                    monthlyBonus: 0,
+                    monthlyTotalCommission: 0,
                     monthlyChurnMrc: 0,
                     monthlyChurnCommission: 0,
                     monthlyChurnSubscription: 0
@@ -644,18 +694,27 @@ export class CommissionController {
                     monthSales.total++;
                     monthSales.activity += statsResult.activityCount;
 
-                    const newDetail = statsResult.detail.new;
-                    const recurringDetail = statsResult.detail.recurring;
+                    const d = statsResult.detail;
+                    const combinedNewMrc = d.new.mrc + d.prorate.mrc + d.upgrade.mrc;
+                    const combinedNewDpp = d.new.dpp + d.prorate.dpp + d.upgrade.dpp;
+                    const combinedNewCommission = d.new.commission + d.prorate.commission + d.upgrade.commission;
+
+                    const otherDpp = d.alat.dpp + d.setup.dpp;
+                    const otherCommission = d.alat.commission + d.setup.commission;
+
+                    const bonus = CommissionHelper.calculateBonus(statsResult.activityCount);
+                    const totalCommission = combinedNewCommission + d.recurring.commission + otherCommission + bonus;
                     
-                    // New Service breakdown
                     // New Service breakdown
                     const newServices = Object.values(statsResult.serviceMap).map((s: any) => {
                         const n = s.detail.new;
+                        const u = s.detail.upgrade;
+                        const p = s.detail.prorate;
                         return {
                             name: s.name,
-                            count: n.count,
-                            mrc: this.commissionHelper.formatCurrency(n.mrc),
-                            subscription: this.commissionHelper.formatCurrency(n.dpp)
+                            count: n.count + u.count + p.count,
+                            mrc: this.commissionHelper.formatCurrency(n.mrc + u.mrc + p.mrc),
+                            subscription: this.commissionHelper.formatCurrency(n.dpp + u.dpp + p.dpp)
                         };
                     });
 
@@ -669,27 +728,35 @@ export class CommissionController {
                             status: statsResult.achievementStatus
                         },
                         newService: newServices,
-                        newMrc: this.commissionHelper.formatCurrency(newDetail.mrc),
-                        newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
-                        newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
-                        recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
-                        recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
-                        _rawNewSubscription: newDetail.dpp,
-                        _rawNewCommission: newDetail.commission,
-                        _rawRecurringSubscription: recurringDetail.dpp
+                        newMrc: this.commissionHelper.formatCurrency(combinedNewMrc),
+                        newSubscription: this.commissionHelper.formatCurrency(combinedNewDpp),
+                        newCommission: this.commissionHelper.formatCurrency(combinedNewCommission),
+                        recurringSubscription: this.commissionHelper.formatCurrency(d.recurring.dpp),
+                        recurringCommission: this.commissionHelper.formatCurrency(d.recurring.commission),
+                        otherSubscription: this.commissionHelper.formatCurrency(otherDpp),
+                        otherCommission: this.commissionHelper.formatCurrency(otherCommission),
+                        bonus: this.commissionHelper.formatCurrency(bonus),
+                        totalCommission: this.commissionHelper.formatCurrency(totalCommission),
+                        _rawNewSubscription: combinedNewDpp,
+                        _rawNewCommission: combinedNewCommission,
+                        _rawRecurringSubscription: d.recurring.dpp
                     };
 
                     // Only show if active or has data
-                    if (statsResult.activityCount > 0 || recurringDetail.commission > 0 || member.is_active) {
+                    if (statsResult.activityCount > 0 || d.recurring.commission > 0 || member.is_active) {
                         monthEmployees.push(employeeData);
                     }
 
                     // Accumulate Month Totals
-                    monthTotals.monthlyNewMrc += newDetail.mrc;
-                    monthTotals.monthlyNewSubscription += newDetail.dpp;
-                    monthTotals.monthlyNewCommission += newDetail.commission;
-                    monthTotals.monthlyRecurringSubscription += recurringDetail.dpp;
-                    monthTotals.monthlyRecurringCommission += recurringDetail.commission;
+                    monthTotals.monthlyNewMrc += combinedNewMrc;
+                    monthTotals.monthlyNewSubscription += combinedNewDpp;
+                    monthTotals.monthlyNewCommission += combinedNewCommission;
+                    monthTotals.monthlyRecurringSubscription += d.recurring.dpp;
+                    monthTotals.monthlyRecurringCommission += d.recurring.commission;
+                    monthTotals.monthlyOtherSubscription += otherDpp;
+                    monthTotals.monthlyOtherCommission += otherCommission;
+                    monthTotals.monthlyBonus += bonus;
+                    monthTotals.monthlyTotalCommission += totalCommission;
 
                     // Accumulate Churn Deductions
                     monthTotals.monthlyChurnMrc += statsResult.deduction.mrc;
@@ -727,6 +794,10 @@ export class CommissionController {
                     monthlyNewCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyNewCommission),
                     monthlyRecurringSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringSubscription),
                     monthlyRecurringCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringCommission),
+                    monthlyOtherSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyOtherSubscription),
+                    monthlyOtherCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyOtherCommission),
+                    monthlyBonus: this.commissionHelper.formatCurrency(monthTotals.monthlyBonus),
+                    monthlyTotalCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyTotalCommission),
                     achievement: {
                         newCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                         newCommission: this.commissionHelper.formatCurrency(managerAchievement.newCommission),
@@ -748,6 +819,10 @@ export class CommissionController {
                 yearlyTotals.yearlyNewCommission += monthTotals.monthlyNewCommission;
                 yearlyTotals.yearlyRecurringSubscription += monthTotals.monthlyRecurringSubscription;
                 yearlyTotals.yearlyRecurringCommission += monthTotals.monthlyRecurringCommission;
+                yearlyTotals.yearlyOtherSubscription += monthTotals.monthlyOtherSubscription;
+                yearlyTotals.yearlyOtherCommission += monthTotals.monthlyOtherCommission;
+                yearlyTotals.yearlyBonus += monthTotals.monthlyBonus;
+                yearlyTotals.yearlyTotalCommission += monthTotals.monthlyTotalCommission;
                 yearlyTotals.yearlyChurnMrc += monthTotals.monthlyChurnMrc;
                 yearlyTotals.yearlyChurnCommission += monthTotals.monthlyChurnCommission;
                 yearlyTotals.yearlyChurnSubscription += monthTotals.monthlyChurnSubscription;
@@ -759,6 +834,10 @@ export class CommissionController {
                 yearlyNewCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyNewCommission),
                 yearlyRecurringSubscription: this.commissionHelper.formatCurrency(yearlyTotals.yearlyRecurringSubscription),
                 yearlyRecurringCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyRecurringCommission),
+                yearlyOtherSubscription: this.commissionHelper.formatCurrency(yearlyTotals.yearlyOtherSubscription),
+                yearlyOtherCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyOtherCommission),
+                yearlyBonus: this.commissionHelper.formatCurrency(yearlyTotals.yearlyBonus),
+                yearlyTotalCommission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyTotalCommission),
                 yearlyDeduction: {
                     mrc: this.commissionHelper.formatCurrency(yearlyTotals.yearlyChurnMrc),
                     commission: this.commissionHelper.formatCurrency(yearlyTotals.yearlyChurnCommission),
@@ -800,6 +879,10 @@ export class CommissionController {
                 monthlyNewCommission: 0,
                 monthlyRecurringSubscription: 0,
                 monthlyRecurringCommission: 0,
+                monthlyOtherSubscription: 0,
+                monthlyOtherCommission: 0,
+                monthlyBonus: 0,
+                monthlyTotalCommission: 0,
                 monthlyChurnMrc: 0,
                 monthlyChurnCommission: 0,
                 monthlyChurnSubscription: 0
@@ -834,17 +917,27 @@ export class CommissionController {
                     monthSales.total++;
                     monthSales.activity += statsResult.activityCount;
 
-                    const newDetail = statsResult.detail.new;
-                    const recurringDetail = statsResult.detail.recurring;
+                    const d = statsResult.detail;
+                    const combinedNewMrc = d.new.mrc + d.prorate.mrc + d.upgrade.mrc;
+                    const combinedNewDpp = d.new.dpp + d.prorate.dpp + d.upgrade.dpp;
+                    const combinedNewCommission = d.new.commission + d.prorate.commission + d.upgrade.commission;
+
+                    const otherDpp = d.alat.dpp + d.setup.dpp;
+                    const otherCommission = d.alat.commission + d.setup.commission;
+
+                    const bonus = CommissionHelper.calculateBonus(statsResult.activityCount);
+                    const totalCommission = combinedNewCommission + d.recurring.commission + otherCommission + bonus;
                     
                     // New Service breakdown
                     const newServices = Object.values(statsResult.serviceMap).map((s: any) => {
                         const n = s.detail.new;
+                        const u = s.detail.upgrade;
+                        const p = s.detail.prorate;
                         return {
                             name: s.name,
-                            count: n.count,
-                            mrc: this.commissionHelper.formatCurrency(n.mrc),
-                            subscription: this.commissionHelper.formatCurrency(n.dpp)
+                            count: n.count + u.count + p.count,
+                            mrc: this.commissionHelper.formatCurrency(n.mrc + u.mrc + p.mrc),
+                            subscription: this.commissionHelper.formatCurrency(n.dpp + u.dpp + p.dpp)
                         };
                     });
 
@@ -858,27 +951,35 @@ export class CommissionController {
                             status: statsResult.achievementStatus
                         },
                         newService: newServices,
-                        newMrc: this.commissionHelper.formatCurrency(newDetail.mrc),
-                        newSubscription: this.commissionHelper.formatCurrency(newDetail.dpp),
-                        newCommission: this.commissionHelper.formatCurrency(newDetail.commission),
-                        recurringSubscription: this.commissionHelper.formatCurrency(recurringDetail.dpp),
-                        recurringCommission: this.commissionHelper.formatCurrency(recurringDetail.commission),
-                        _rawNewSubscription: newDetail.dpp,
-                        _rawNewCommission: newDetail.commission,
-                        _rawRecurringSubscription: recurringDetail.dpp
+                        newMrc: this.commissionHelper.formatCurrency(combinedNewMrc),
+                        newSubscription: this.commissionHelper.formatCurrency(combinedNewDpp),
+                        newCommission: this.commissionHelper.formatCurrency(combinedNewCommission),
+                        recurringSubscription: this.commissionHelper.formatCurrency(d.recurring.dpp),
+                        recurringCommission: this.commissionHelper.formatCurrency(d.recurring.commission),
+                        otherSubscription: this.commissionHelper.formatCurrency(otherDpp),
+                        otherCommission: this.commissionHelper.formatCurrency(otherCommission),
+                        bonus: this.commissionHelper.formatCurrency(bonus),
+                        totalCommission: this.commissionHelper.formatCurrency(totalCommission),
+                        _rawNewSubscription: combinedNewDpp,
+                        _rawNewCommission: combinedNewCommission,
+                        _rawRecurringSubscription: d.recurring.dpp
                     };
 
                     // Only show if active or has data
-                    if (statsResult.activityCount > 0 || recurringDetail.commission > 0 || member.is_active) {
+                    if (statsResult.activityCount > 0 || d.recurring.commission > 0 || member.is_active) {
                         monthEmployees.push(employeeData);
                     }
 
                     // Accumulate Month Totals
-                    monthTotals.monthlyNewMrc += newDetail.mrc;
-                    monthTotals.monthlyNewSubscription += newDetail.dpp;
-                    monthTotals.monthlyNewCommission += newDetail.commission;
-                    monthTotals.monthlyRecurringSubscription += recurringDetail.dpp;
-                    monthTotals.monthlyRecurringCommission += recurringDetail.commission;
+                    monthTotals.monthlyNewMrc += combinedNewMrc;
+                    monthTotals.monthlyNewSubscription += combinedNewDpp;
+                    monthTotals.monthlyNewCommission += combinedNewCommission;
+                    monthTotals.monthlyRecurringSubscription += d.recurring.dpp;
+                    monthTotals.monthlyRecurringCommission += d.recurring.commission;
+                    monthTotals.monthlyOtherSubscription += otherDpp;
+                    monthTotals.monthlyOtherCommission += otherCommission;
+                    monthTotals.monthlyBonus += bonus;
+                    monthTotals.monthlyTotalCommission += totalCommission;
 
                     // Accumulate Churn Deductions
                     monthTotals.monthlyChurnMrc += statsResult.deduction.mrc;
@@ -916,6 +1017,10 @@ export class CommissionController {
                 monthlyNewCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyNewCommission),
                 monthlyRecurringSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringSubscription),
                 monthlyRecurringCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyRecurringCommission),
+                monthlyOtherSubscription: this.commissionHelper.formatCurrency(monthTotals.monthlyOtherSubscription),
+                monthlyOtherCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyOtherCommission),
+                monthlyBonus: this.commissionHelper.formatCurrency(monthTotals.monthlyBonus),
+                monthlyTotalCommission: this.commissionHelper.formatCurrency(monthTotals.monthlyTotalCommission),
                 achievement: {
                     newCommissionPercentage: this.commissionHelper.formatCurrency(managerAchievement.rates.new),
                     newCommission: this.commissionHelper.formatCurrency(managerAchievement.newCommission),

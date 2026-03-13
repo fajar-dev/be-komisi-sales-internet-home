@@ -27,8 +27,8 @@ route.get('/additional/invoice', (c) => new AdditionalController().getInvoice(c)
 route.get('/employee/:id', authMiddleware, (c) => new EmployeeController().getEmployeeByEmployeeId(c));
 route.get('/employee/:id/hierarchy', authMiddleware, (c) => new EmployeeController().getEmployeeHierarchy(c));
 
-route.get('/sales/:id/commission', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().salesCommission(c));
-route.get('/sales/:id/commission/period', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().salesCommissionPeriod(c));
+route.get('/sales/:id/commission', (c) => new CommissionController().salesCommission(c));
+route.get('/sales/:id/commission/period', (c) => new CommissionController().salesCommissionPeriod(c));
 route.get('/sales/:id/churn', (c) => new SnapshotController().salesChurn(c));
 
 route.get('/manager/:id/commission', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommission(c));
