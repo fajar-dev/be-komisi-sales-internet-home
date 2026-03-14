@@ -117,7 +117,7 @@ export class SnapshotService {
                 ON s.ai = a.ai
             WHERE s.sales_id = ?
             AND s.paid_date BETWEEN ? AND ?
-            AND NOT (s.service_id IN ('NFSP030', 'FSP100', 'NFSP200') AND s.type = 'recurring')
+            AND NOT (s.service_id IN ('NFSP030', 'NFSP100', 'NFSP200') AND s.type = 'recurring')
         `;
         const params: any[] = [salesId, startDate, endDate];
 
@@ -146,6 +146,64 @@ export class SnapshotService {
             AND snapshot.paid_date BETWEEN ? AND ?
         `, [...salesIds, startDate, endDate]);
         
+        return rows as any[];
+    }
+
+    static async getInvoiceSummary(startDate: string, endDate: string, search?: string, type?: string, category?: string) {
+        let query = `
+            SELECT s.*, 
+                   e.name as employee_name, e.employee_id as employee_eid, e.photo_profile as employee_photo
+            FROM snapshot s
+            LEFT JOIN employee e ON s.sales_id = e.employee_id
+            WHERE s.paid_date BETWEEN ? AND ?
+        `;
+        const params: any[] = [startDate, endDate];
+
+        if (search) {
+            query += ` AND (
+                s.customer_id LIKE ? OR 
+                s.customer_name LIKE ? OR 
+                s.customer_company LIKE ? OR 
+                s.customer_service_account LIKE ? OR 
+                s.service_name LIKE ? OR 
+                e.name LIKE ? OR 
+                e.employee_id LIKE ? OR
+                s.ai LIKE ?
+            )`;
+            const searchPattern = `%${search}%`;
+            params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+        }
+
+        if (type) {
+            const t = type.toLowerCase();
+            if (t === 'alat' || t === 'setup') {
+                query += ` AND s.category = ?`;
+                params.push(t);
+            } else {
+                query += ` AND s.type = ?`;
+                params.push(t);
+            }
+        }
+
+        if (category) {
+            const nusafiberCodes = ['BFLITE'];
+            const nusaSelectaCodes = ['NFSP030', 'NFSP100', 'NFSP200'];
+            
+            if (category === 'Nusafiber') {
+                query += ` AND s.service_id IN (?)`;
+                params.push(nusafiberCodes);
+            } else if (category === 'NusaSelecta') {
+                query += ` AND s.service_id IN (?)`;
+                params.push(nusaSelectaCodes);
+            } else if (category === 'Home') {
+                query += ` AND s.service_id NOT IN (?)`;
+                params.push([...nusafiberCodes, ...nusaSelectaCodes]);
+            }
+        }
+
+        query += ` ORDER BY s.paid_date DESC`;
+
+        const [rows] = await pool.query(query, params);
         return rows as any[];
     }
 

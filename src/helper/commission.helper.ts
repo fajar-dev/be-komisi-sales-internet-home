@@ -10,14 +10,14 @@ export class CommissionHelper {
     }
 
     static getServiceName(id: string) {
+        if (!id) return 'Home';
+        const code = id.toUpperCase();
         const nusafiberCodes = ['BFLITE'];
         const nusaSelectaCodes = ['NFSP030', 'NFSP100', 'NFSP200'];
-        const homeCodes = ['HOME100', 'HOMEADV200', 'HOMEADV', 'HOMEPREM300', 'HOMESTD100'];
 
-        if (nusafiberCodes.includes(id)) return 'Nusafiber';
-        if (nusaSelectaCodes.includes(id)) return 'NusaSelecta';
-        if (homeCodes.includes(id)) return 'Home';
-        return 'Other';
+        if (nusafiberCodes.includes(code)) return 'Nusafiber';
+        if (nusaSelectaCodes.includes(code)) return 'NusaSelecta';
+        return 'Home';
     }
 
     static initStats() {

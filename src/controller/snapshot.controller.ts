@@ -539,4 +539,62 @@ export class SnapshotController {
             return c.json(this.apiResponse.error("Failed to retrieve sales churn", error.message), 500);
         }
     }
+
+    async invoiceSummary(c: Context) {
+        try {
+            const { month, year, search, type, category } = c.req.query();
+
+            if (!month || !year) {
+                return c.json(this.apiResponse.error("Missing month or year parameter"), 400);
+            }
+
+            const monthInt = parseInt(month as string);
+            const yearInt = parseInt(year as string);
+
+            if (isNaN(monthInt) || isNaN(yearInt)) {
+                return c.json(this.apiResponse.error("Invalid month or year parameter"), 400);
+            }
+
+            const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
+
+            const result = await this.snapshotService.getInvoiceSummary(startDate, endDate, search as string, type as string, category as string);
+
+            const data = result.map((row: any) => ({
+                sales: {
+                    name: row.employee_name,
+                    employeeId: row.employee_eid,
+                    photoProfile: row.employee_photo,
+                },
+                ai: row.ai,
+                invoiceDate: row.invoice_date,
+                invoiceDueDate: row.invoice_due_date,
+                paidDate: row.paid_date,
+                lateMonth: row.late_month,
+                month: row.month,
+                dpp: row.dpp ? Number(row.dpp).toFixed(2) : "0.00",
+                mrc: row.mrc ? Number(row.mrc).toFixed(2) : "0.00",
+                newSubscription: row.new_subscription ? Number(row.new_subscription).toFixed(2) : "0.00",
+                customerServiceId: row.customer_service_id,
+                customerId: row.customer_id,
+                customerName: row.customer_name,
+                customerCompany: row.customer_company,
+                customerServiceAccount: row.customer_service_account,
+                serviceId: row.service_id,
+                serviceName: row.service_name,
+                salesId: row.sales_id,
+                type: (() => {
+                    let type = row.type || '';
+                    if (row.category === 'alat') type = 'Alat';
+                    else if (row.category === 'setup') type = 'Setup';
+                    else type = type.charAt(0).toUpperCase() + type.slice(1);
+                    return type;
+                })(),
+                category: this.commissionHelper.getServiceName(row.service_id)
+            }));
+
+            return c.json(this.apiResponse.success("Invoice summary retrieved successfully", data));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("Failed to retrieve invoice summary", error.message), 500);
+        }
+    }
 }
