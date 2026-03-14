@@ -1,18 +1,4 @@
-To install dependencies:
-
-```sh
-bun install
-```
-
-To run:
-
-```sh
-bun run dev
-```
-
-open http://localhost:3000
-
----
+# Komisi Account Manager & Sales Manager
 
 ## Aturan dan Perhitungan Komisi Sales & Manager
 
