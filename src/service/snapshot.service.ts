@@ -287,4 +287,11 @@ export class SnapshotService {
         const [result] = await pool.query(sql, params);
         return result;
     }
+
+    static async updateApproval(ai: string, isApproved: boolean) {
+        await pool.query(
+            `UPDATE snapshot SET is_approved = ? WHERE ai = ? AND late_month > 0`,
+            [isApproved ? 1 : 0, ai]
+        );
+    }
 }

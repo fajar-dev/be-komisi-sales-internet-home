@@ -66,7 +66,8 @@ CREATE TABLE employee (
     status VARCHAR(255) NOT NULL,
     manager_id INT NULL,
     has_dashboard BOOLEAN NOT NULL DEFAULT false,
-    is_active BOOLEAN NOT NULL DEFAULT true
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    is_admin BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE status_period (

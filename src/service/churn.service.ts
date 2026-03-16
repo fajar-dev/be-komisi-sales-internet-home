@@ -110,4 +110,10 @@ export class ChurnService {
         const [rows] = await pool.query(query, params);
         return rows as any[];
     }
+    static async updateApproval(customerServiceId: string, isApproved: boolean) {
+        await pool.query(
+            `UPDATE churn SET is_approved = ? WHERE customer_service_id = ?`,
+            [isApproved ? 1 : 0, customerServiceId]
+        );
+    }
 }

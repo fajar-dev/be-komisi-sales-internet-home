@@ -179,6 +179,10 @@ export class EmployeeService {
         );
 
         if (existing.length > 0) {
+            await pool.query(
+                `UPDATE status_period SET status = ? WHERE id = ?`,
+                [status, existing[0].id]
+            );
             return;
         }
 

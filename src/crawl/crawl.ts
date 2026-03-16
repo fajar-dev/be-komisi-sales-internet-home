@@ -19,9 +19,9 @@ class Crawl {
             await this.snapshotCrawl.crawlInvoice();
             console.log("Snapshot crawl finished.");
 
-            console.log("Starting the Google Sheet override crawl...");
-            await this.googleSheetCrawl.crawlSnapshotOverride();
-            console.log("Google Sheet override crawl finished.");
+            // console.log("Starting the Google Sheet override crawl...");
+            // await this.googleSheetCrawl.crawlSnapshotOverride();
+            // console.log("Google Sheet override crawl finished.");
 
             console.log("Starting the churn crawl...");
             await this.churnCrawl.crawlChurn();

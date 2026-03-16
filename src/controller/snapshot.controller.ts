@@ -641,6 +641,49 @@ export class SnapshotController {
         }
     }
 
+    async updateChurnApproval(c: Context) {
+        try {
+            const customerServiceId = c.req.param('id');
+            const { isApproved } = await c.req.json();
+
+            if (customerServiceId === undefined || isApproved === undefined) {
+                return c.json(this.apiResponse.error("Missing customer service ID or isApproved body"), 400);
+            }
+
+            await ChurnService.updateApproval(customerServiceId, isApproved);
+
+            return c.json(this.apiResponse.success("Churn approval updated successfully"));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("Failed to update churn approval", error.message), 500);
+        }
+    }
+
+    async updateInvoiceApproval(c: Context) {
+        try {
+            const ai = c.req.param('ai');
+            const { isApproved } = await c.req.json();
+
+            if (ai === undefined || isApproved === undefined) {
+                return c.json(this.apiResponse.error("Missing AI or isApproved body"), 400);
+            }
+
+            const snapshot = await this.snapshotService.getSnapshotByAi(ai);
+            if (!snapshot) {
+                return c.json(this.apiResponse.error("Snapshot not found"), 404);
+            }
+
+            if (snapshot.late_month <= 0) {
+                return c.json(this.apiResponse.error("Only invoices with late month > 0 can be updated"), 400);
+            }
+
+            await this.snapshotService.updateApproval(ai, isApproved);
+
+            return c.json(this.apiResponse.success("Invoice approval updated successfully"));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("Failed to update invoice approval", error.message), 500);
+        }
+    }
+
     async invoiceSummary(c: Context) {
         try {
             const { month, year, search, type, category } = c.req.query();
@@ -692,7 +735,8 @@ export class SnapshotController {
                     else type = type.charAt(0).toUpperCase() + type.slice(1);
                     return type;
                 })(),
-                category: this.commissionHelper.getServiceName(row.service_id)
+                category: this.commissionHelper.getServiceName(row.service_id),
+                isApproved: row.is_approved
             }));
 
             return c.json(this.apiResponse.success("Invoice summary retrieved successfully", data));

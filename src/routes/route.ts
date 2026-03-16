@@ -33,10 +33,12 @@ route.get('/sales/:id/churn', authMiddleware, hierarchyMiddleware, (c) => new Sn
 route.get('/sales/:id/invoice', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesInvoice(c));
 route.get('/sales/:id/invoice/:ai', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesSnapshotByAi(c));
 
-route.get('/sales/summary', (c) => new CommissionController().salesSummary(c));
-route.get('/manager/summary', (c) => new CommissionController().managerSummary(c));
-route.get('/invoice/summary', (c) => new SnapshotController().invoiceSummary(c));
-route.get('/churn/summary', (c) => new SnapshotController().invoiceChurn(c));
+route.get('/summary/sales', (c) => new CommissionController().salesSummary(c));
+route.get('/summary/manager', (c) => new CommissionController().managerSummary(c));
+route.get('/summary/invoice', (c) => new SnapshotController().invoiceSummary(c));
+route.get('/summary/churn', (c) => new SnapshotController().invoiceChurn(c));
+route.post('/summary/churn/:id', (c) => new SnapshotController().updateChurnApproval(c));
+route.post('/summary/invoice/:ai', (c) => new SnapshotController().updateInvoiceApproval(c));
 
 route.get('/manager/:id/commission', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommission(c));
 route.get('/manager/:id/commission/period', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommissionPeriod(c));
