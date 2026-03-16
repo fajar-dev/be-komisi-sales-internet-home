@@ -540,6 +540,107 @@ export class SnapshotController {
         }
     }
 
+    async invoiceChurn(c: Context) {
+        try {
+            const { month, year, search } = c.req.query();
+
+            if (!month || !year) {
+                return c.json(this.apiResponse.error("Missing month or year parameter"), 400);
+            }
+
+            const monthInt = parseInt(month as string);
+            const yearInt = parseInt(year as string);
+
+            if (isNaN(monthInt) || isNaN(yearInt)) {
+                return c.json(this.apiResponse.error("Invalid month or year parameter"), 400);
+            }
+
+            const { startDate, endDate } = period.getStartAndEndDateForMonth(yearInt, monthInt - 1);
+
+            const churnRows = await ChurnService.getChurnSummary(startDate, endDate, search as string);
+            
+            // Get all employee statuses in this period to avoid N queries
+            const employeeIds = Array.from(new Set(churnRows.map((r: any) => r.sales_id).filter(id => id))) as string[];
+            const statusRecords = await this.employeeService.getStatusesByPeriodAndIds(employeeIds, startDate, endDate);
+            
+            const findStatus = (sid: string) => 
+                statusRecords.find((r: any) => r.employee_id === sid)?.status || 'Probation';
+
+            const data = churnRows.map((row: any) => {
+                const price = Number(row.price);
+                const periodVal = Math.max(Number(row.period), 1);
+                const mrc = price / periodVal;
+                const employeeStatus = findStatus(row.sales_id);
+                
+                // Calculating commission deduction based on new installation rate
+                const { commission, commissionPercentage, baseCommission } = CommissionHelper.calculateCommission(
+                    row,
+                    price,
+                    periodVal,
+                    row.service_id,
+                    'home', 
+                    'new',  
+                    employeeStatus,
+                    12, // Assume target reached for deduction purposes
+                    false,
+                    0 // lateMonth
+                );
+
+                const registrationDate = new Date(row.registration_date);
+                const unregistrationDate = new Date(row.unregistration_date);
+                let subscriptionPeriod = "-";
+
+                if (!isNaN(registrationDate.getTime()) && !isNaN(unregistrationDate.getTime())) {
+                    let months = (unregistrationDate.getFullYear() - registrationDate.getFullYear()) * 12 + (unregistrationDate.getMonth() - registrationDate.getMonth());
+                    let days = unregistrationDate.getDate() - registrationDate.getDate();
+
+                    if (days < 0) {
+                        months--;
+                        const lastDayOfMonth = new Date(unregistrationDate.getFullYear(), unregistrationDate.getMonth(), 0).getDate();
+                        days += lastDayOfMonth;
+                    }
+
+                    const periodParts = [];
+                    if (months > 0) periodParts.push(`${months} bulan`);
+                    if (days > 0) periodParts.push(`${days} hari`);
+                    
+                    subscriptionPeriod = periodParts.length > 0 ? periodParts.join(" ") : "0 hari";
+                }
+
+                return {
+                    sales: {
+                        name: row.employee_name,
+                        employeeId: row.employee_eid,
+                        photoProfile: row.employee_photo,
+                    },
+                    customerServiceId: row.customer_service_id,
+                    customerId: row.customer_id,
+                    customerName: row.customer_name,
+                    customerServiceAccount: row.customer_service_account,
+                    serviceId: row.service_id,
+                    serviceName: row.service_name,
+                    registrationDate: row.registration_date,
+                    unregistrationDate: row.unregistration_date,
+                    subscriptionPeriod: subscriptionPeriod,
+                    reason: row.reason,
+                    period: periodVal,
+                    price: price.toFixed(2),
+                    salesId: row.sales_id,
+                    managerId: row.manager_id,
+                    mrc: mrc.toFixed(2),
+                    baseCommission: baseCommission.toFixed(2),
+                    commission: commission.toFixed(2),
+                    commissionPercentage: commissionPercentage,
+                    isApproved: row.is_approved
+                };
+            });
+
+            return c.json(this.apiResponse.success("Invoice churn retrieved successfully", data));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("Failed to retrieve invoice churn", error.message), 500);
+        }
+    }
+
     async invoiceSummary(c: Context) {
         try {
             const { month, year, search, type, category } = c.req.query();
@@ -582,6 +683,8 @@ export class SnapshotController {
                 serviceId: row.service_id,
                 serviceName: row.service_name,
                 salesId: row.sales_id,
+                referralFee: row.referral_fee ? Number(row.referral_fee).toFixed(2) : "0.00",
+                referralType: row.referral_type,
                 type: (() => {
                     let type = row.type || '';
                     if (row.category === 'alat') type = 'Alat';

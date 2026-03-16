@@ -80,4 +80,34 @@ export class ChurnService {
         );
         return rows as any[];
     }
+
+    static async getChurnSummary(startDate: string, endDate: string, search?: string) {
+        let query = `
+            SELECT c.*, 
+                   e.name as employee_name, e.employee_id as employee_eid, e.photo_profile as employee_photo
+            FROM churn c
+            LEFT JOIN employee e ON c.sales_id = e.employee_id
+            WHERE c.unregistration_date BETWEEN ? AND ?
+        `;
+        const params: any[] = [startDate, endDate];
+
+        if (search) {
+            query += ` AND (
+                c.customer_id LIKE ? OR 
+                c.customer_name LIKE ? OR 
+                c.customer_service_account LIKE ? OR 
+                c.service_name LIKE ? OR 
+                e.name LIKE ? OR 
+                e.employee_id LIKE ? OR
+                c.customer_service_id LIKE ?
+            )`;
+            const searchPattern = `%${search}%`;
+            params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+        }
+
+        query += ` ORDER BY c.unregistration_date DESC`;
+
+        const [rows] = await pool.query(query, params);
+        return rows as any[];
+    }
 }

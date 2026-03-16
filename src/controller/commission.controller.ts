@@ -1112,6 +1112,9 @@ export class CommissionController {
                 });
             }
 
+            // Sort by new service count descending
+            data.sort((a, b) => b.newService - a.newService);
+
             return c.json(this.apiResponse.success("Sales summary retrieved successfully", data));
         } catch (error: any) {
             return c.json(this.apiResponse.error("An error occurred", error.message), 500);
@@ -1224,9 +1227,13 @@ export class CommissionController {
                     monthlyTotalCommission: format(monthTotals.monthlyTotalCommission),
                     managerNewCommission: format(managerAchievement.newCommission),
                     managerRecurringCommission: format(managerAchievement.recurringCommission),
-                    managerTotalCommission: format(managerAchievement.totalCommission)
+                    managerTotalCommission: format(managerAchievement.totalCommission),
+                    newService: monthSales.activity
                 });
             }
+
+            // Sort by new service count descending
+            data.sort((a, b) => b.newService - a.newService);
 
             return c.json(this.apiResponse.success("Manager summary retrieved successfully", data));
         } catch (error: any) {
