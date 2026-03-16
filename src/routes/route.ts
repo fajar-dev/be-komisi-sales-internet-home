@@ -8,6 +8,7 @@ import { AdditionalController } from '../controller/additional.controller';
 import { AdjustmentController } from '../controller/adjustment.controller';
 import { SnapshotController } from '../controller/snapshot.controller';
 import { CommissionController } from '../controller/commission.controller';
+import { adminMiddleware } from '../middleware/admin.middleware';
 
 
 const route = new Hono();
@@ -33,12 +34,12 @@ route.get('/sales/:id/churn', authMiddleware, hierarchyMiddleware, (c) => new Sn
 route.get('/sales/:id/invoice', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesInvoice(c));
 route.get('/sales/:id/invoice/:ai', authMiddleware, hierarchyMiddleware, (c) => new SnapshotController().salesSnapshotByAi(c));
 
-route.get('/summary/sales', (c) => new CommissionController().salesSummary(c));
-route.get('/summary/manager', (c) => new CommissionController().managerSummary(c));
-route.get('/summary/invoice', (c) => new SnapshotController().invoiceSummary(c));
-route.get('/summary/churn', (c) => new SnapshotController().invoiceChurn(c));
-route.post('/summary/churn/:id', (c) => new SnapshotController().updateChurnApproval(c));
-route.post('/summary/invoice/:ai', (c) => new SnapshotController().updateInvoiceApproval(c));
+route.get('/summary/sales', authMiddleware, adminMiddleware, (c) => new CommissionController().salesSummary(c));
+route.get('/summary/manager', authMiddleware, adminMiddleware, (c) => new CommissionController().managerSummary(c));
+route.get('/summary/invoice', authMiddleware, adminMiddleware, (c) => new SnapshotController().invoiceSummary(c));
+route.get('/summary/churn', authMiddleware, adminMiddleware, (c) => new SnapshotController().invoiceChurn(c));
+route.post('/summary/churn/:id', authMiddleware, adminMiddleware, (c) => new SnapshotController().updateChurnApproval(c));
+route.post('/summary/invoice/:ai', authMiddleware, adminMiddleware, (c) => new SnapshotController().updateInvoiceApproval(c));
 
 route.get('/manager/:id/commission', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommission(c));
 route.get('/manager/:id/commission/period', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommissionPeriod(c));
