@@ -684,6 +684,28 @@ export class SnapshotController {
         }
     }
 
+    async updateInvoiceReferral(c: Context) {
+        try {
+            const ai = c.req.param('ai');
+            const { referralFee, referralType } = await c.req.json();
+
+            if (ai === undefined) {
+                return c.json(this.apiResponse.error("Missing AI parameter"), 400);
+            }
+
+            const snapshot = await this.snapshotService.getSnapshotByAi(ai);
+            if (!snapshot) {
+                return c.json(this.apiResponse.error("Snapshot not found"), 404);
+            }
+
+            await SnapshotService.updateReferral(ai, referralFee, referralType);
+
+            return c.json(this.apiResponse.success("Invoice referral updated successfully"));
+        } catch (error: any) {
+            return c.json(this.apiResponse.error("Failed to update invoice referral", error.message), 500);
+        }
+    }
+
     async invoiceSummary(c: Context) {
         try {
             const { month, year, search, type, category } = c.req.query();

@@ -40,6 +40,7 @@ route.get('/summary/invoice', authMiddleware, adminMiddleware, (c) => new Snapsh
 route.get('/summary/churn', authMiddleware, adminMiddleware, (c) => new SnapshotController().invoiceChurn(c));
 route.post('/summary/churn/:id', authMiddleware, adminMiddleware, (c) => new SnapshotController().updateChurnApproval(c));
 route.post('/summary/invoice/:ai', authMiddleware, adminMiddleware, (c) => new SnapshotController().updateInvoiceApproval(c));
+route.put('/summary/invoice/:ai', authMiddleware, adminMiddleware, (c) => new SnapshotController().updateInvoiceReferral(c));
 
 route.get('/manager/:id/commission', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommission(c));
 route.get('/manager/:id/commission/period', authMiddleware, hierarchyMiddleware, (c) => new CommissionController().managerCommissionPeriod(c));

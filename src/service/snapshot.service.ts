@@ -288,6 +288,13 @@ export class SnapshotService {
         return result;
     }
 
+    static async updateReferral(ai: string, referralFee: number | string, referralType: string) {
+        await pool.query(
+            `UPDATE snapshot SET referral_fee = ?, referral_type = ?, is_adjustment = 1 WHERE ai = ?`,
+            [referralFee, referralType, ai]
+        );
+    }
+
     static async updateApproval(ai: string, isApproved: boolean) {
         await pool.query(
             `UPDATE snapshot SET is_approved = ? WHERE ai = ? AND late_month > 0`,
